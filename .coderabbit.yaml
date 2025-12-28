@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+# CodeRabbit basic configuration
+# Docs: https://docs.coderabbit.ai/getting-started/configure-coderabbit/
+
+# Review language (ISO code)
+language: 'ja-JP'
+
+reviews:
+  # Keep feedback practical (less nitpicky).
+  profile: 'chill'
+
+  # Disable poems in reviews.
+  poem: false
+
+  auto_review:
+    # Enable automatic reviews.
+    enabled: true
+
+    # Review each push incrementally.
+    auto_incremental_review: true
+
+    # IMPORTANT: review Draft PRs as well.
+    drafts: true
+
