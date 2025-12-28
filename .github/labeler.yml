@@ -1,0 +1,22 @@
+frontend:
+  - changed-files:
+      - any-glob-to-any-file: "frontend/**"
+
+backend:
+  - changed-files:
+      - any-glob-to-any-file: "backend/**"
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file: ".github/workflows/**"
+
+repo:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "package.json"
+          - "bun.lock"
+          - "mise.toml"
+          - ".oxfmtrc.json"
+          - ".oxlintrc.json"
+          - ".eslintignore"
+          - ".gitignore"
