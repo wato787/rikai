@@ -10,6 +10,10 @@
   ],
   "timezone": "Asia/Tokyo",
   "schedule": ["before 10am on monday"],
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "enabled": true
+  },
   "rebaseWhen": "conflicted",
   "labels": ["dependencies"],
   "dependencyDashboardTitle": "Renovate ダッシュボード",
@@ -21,21 +25,27 @@
   },
   "packageRules": [
     {
+      "description": "脆弱性対応はスケジュール外で即時にPR作成し、優先度を上げる",
+      "matchManagers": ["osv", "vulnerabilityAlerts"],
+      "schedule": ["at any time"],
+      "prPriority": 100,
+      "addLabels": ["security"],
+      "automerge": false
+    },
+    {
       "groupName": "tooling (typescript / oxlint / oxfmt / types)",
       "matchPackageNames": [
         "typescript",
         "@types/node",
         "@types/bun",
-        "@types/react",
-        "@types/react-dom",
         "oxlint",
         "oxfmt",
         "@typescript/native-preview"
       ]
     },
     {
-      "groupName": "react",
-      "matchPackageNames": ["react", "react-dom"]
+      "groupName": "react (runtime + types)",
+      "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"]
     },
     {
       "description": "開発用依存は patch/minor を自動マージ",
