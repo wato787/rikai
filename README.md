@@ -56,4 +56,13 @@ mise run clean
 
 # タスク一覧
 mise tasks
+
+# すべての型チェック
+mise run typecheck
+
+# フロントのみ
+mise run typecheck:frontend
+
+# バックエンドのみ
+mise run typecheck:backend
 ```

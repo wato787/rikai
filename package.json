@@ -15,6 +15,9 @@
     "build:frontend": "bun run --filter frontend build",
     "start:backend": "bun run --filter backend start",
     "start:frontend": "bun run --filter frontend start",
+    "typecheck": "bun run typecheck:backend && bun run typecheck:frontend",
+    "typecheck:backend": "tsgo --project backend/tsconfig.json --noEmit",
+    "typecheck:frontend": "tsgo --project frontend/tsconfig.json --noEmit",
     "clean:script": "node -e \"const fs=require('fs');['node_modules','backend/node_modules','frontend/node_modules','backend/dist','frontend/dist'].forEach(p=>{try{fs.rmSync(p,{recursive:true,force:true})}catch(e){}})\"",
     "lint": "bun run --filter '*' lint",
     "lint:fix": "bun run --filter '*' lint:fix",
@@ -24,6 +27,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
+    "@typescript/native-preview": "^7.0.0-dev.20251227.1",
     "oxfmt": "^0.20.0",
     "oxlint": "^1.35.0",
     "typescript": "^5.8.3"
