@@ -9,10 +9,14 @@ backend:
 ci:
   - changed-files:
       - any-glob-to-any-file: ".github/workflows/**"
+      - any-glob-to-any-file: ".github/**"
 
 repo:
   - changed-files:
       - any-glob-to-any-file:
+          - "README.md"
+          - "LICENSE"
+          - ".coderabbit.yaml"
           - "package.json"
           - "bun.lock"
           - "mise.toml"
