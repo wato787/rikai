@@ -1,0 +1,55 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":separateMajorReleases",
+    ":combinePatchMinorReleases",
+    ":preserveSemverRanges"
+  ],
+  "timezone": "Asia/Tokyo",
+  "schedule": ["before 10am on monday"],
+  "rebaseWhen": "conflicted",
+  "labels": ["dependencies"],
+  "dependencyDashboardTitle": "Renovate ダッシュボード",
+  "prHourlyLimit": 2,
+  "prConcurrentLimit": 5,
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 10am on monday"]
+  },
+  "packageRules": [
+    {
+      "groupName": "tooling (typescript / oxlint / oxfmt / types)",
+      "matchPackageNames": [
+        "typescript",
+        "@types/node",
+        "@types/bun",
+        "@types/react",
+        "@types/react-dom",
+        "oxlint",
+        "oxfmt",
+        "@typescript/native-preview"
+      ]
+    },
+    {
+      "groupName": "react",
+      "matchPackageNames": ["react", "react-dom"]
+    },
+    {
+      "description": "開発用依存は patch/minor を自動マージ",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "description": "GitHub Actions は digest/patch/minor を自動マージ",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["digest", "patch", "minor"],
+      "automerge": true,
+      "automergeType": "pr"
+    }
+  ]
+}
