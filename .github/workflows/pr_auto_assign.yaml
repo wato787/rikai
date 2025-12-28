@@ -1,0 +1,36 @@
+# ワークフローの名前（GitHub Actions画面で表示される）
+name: PR Auto Assign
+
+# トリガー条件（いつこのワークフローを実行するか）
+on:
+  pull_request:
+    types: [opened, ready_for_review]
+
+# 権限設定（GitHub ActionsがPRを操作するために必要）
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+# 実行するジョブの定義
+jobs:
+  auto_assign:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Auto Assign PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const prNumber = context.payload.pull_request.number;
+            const author = context.payload.pull_request.user.login;
+
+            // PRを作成した人を自動でアサイン
+            await github.rest.issues.addAssignees({
+              owner,
+              repo,
+              issue_number: prNumber,
+              assignees: [author], // PRを作成した人をアサイン
+            });
+
+            console.log(`Assigned ${author} to PR #${prNumber}`);
