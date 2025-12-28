@@ -18,11 +18,18 @@
     "typecheck": "bun run typecheck:backend && bun run typecheck:frontend",
     "typecheck:backend": "tsgo --project backend/tsconfig.json --noEmit",
     "typecheck:frontend": "tsgo --project frontend/tsconfig.json --noEmit",
-    "clean:script": "node -e \"const fs=require('fs');['node_modules','backend/node_modules','frontend/node_modules','backend/dist','frontend/dist'].forEach(p=>{try{fs.rmSync(p,{recursive:true,force:true})}catch(e){}})\""
+    "clean:script": "node -e \"const fs=require('fs');['node_modules','backend/node_modules','frontend/node_modules','backend/dist','frontend/dist'].forEach(p=>{try{fs.rmSync(p,{recursive:true,force:true})}catch(e){}})\"",
+    "lint": "bun run --filter '*' lint",
+    "lint:fix": "bun run --filter '*' lint:fix",
+    "format": "oxfmt -c ./.oxfmtrc.json --write ./backend/src ./frontend/src",
+    "format:check": "oxfmt -c ./.oxfmtrc.json --check ./backend/src ./frontend/src",
+    "check": "bun run lint && bun run format:check"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
     "@typescript/native-preview": "^7.0.0-dev.20251227.1",
+    "oxfmt": "^0.20.0",
+    "oxlint": "^1.35.0",
     "typescript": "^5.8.3"
   }
 }

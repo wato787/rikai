@@ -49,3 +49,23 @@ run = "bun run typecheck:backend"
 [tasks."typecheck:frontend"]
 description = "フロントエンドの型チェック"
 run = "bun run typecheck:frontend"
+
+[tasks.lint]
+description = "oxlintでfrontend/backendをlint"
+run = "bun run lint"
+
+[tasks."lint:fix"]
+description = "oxlintで自動修正（可能な範囲）"
+run = "bun run lint:fix"
+
+[tasks.format]
+description = "oxfmtでfrontend/backendをフォーマット"
+run = "bun run format"
+
+[tasks."format:check"]
+description = "oxfmtでフォーマット差分チェック"
+run = "bun run format:check"
+
+[tasks.check]
+description = "lint + format:check"
+run = "bun run check"

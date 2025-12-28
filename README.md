@@ -39,6 +39,13 @@ mise run dev:backend
 # フロントエンドのみ起動
 mise run dev:frontend
 
+# lint / format
+mise run lint
+mise run lint:fix
+mise run format
+mise run format:check
+mise run check
+
 # ビルド
 mise run build
 mise run build:backend
@@ -53,9 +60,9 @@ mise tasks
 # すべての型チェック
 mise run typecheck
 
-#フロントのみ
+# フロントのみ
 mise run typecheck:frontend
 
-#バックエンドのみ
+# バックエンドのみ
 mise run typecheck:backend
 ```
