@@ -37,3 +37,15 @@ run = "bun install"
 [tasks.clean]
 description = "node_modulesとビルド成果物を削除"
 run = "bun run clean:script"
+
+[tasks.typecheck]
+description = "全パッケージの型チェック"
+run = "bun run typecheck"
+
+[tasks."typecheck:backend"]
+description = "バックエンドの型チェック"
+run = "bun run typecheck:backend"
+
+[tasks."typecheck:frontend"]
+description = "フロントエンドの型チェック"
+run = "bun run typecheck:frontend"
