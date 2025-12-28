@@ -24,7 +24,8 @@ permissions:
 jobs:
   changes:
     name: Detect changed paths
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
     outputs:
       frontend: ${{ steps.filter.outputs.frontend }}
       backend: ${{ steps.filter.outputs.backend }}
@@ -62,7 +63,8 @@ jobs:
         (needs.changes.outputs.frontend == 'true' || needs.changes.outputs.shared == 'true')
         && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
       }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -93,7 +95,8 @@ jobs:
         (needs.changes.outputs.backend == 'true' || needs.changes.outputs.shared == 'true')
         && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
       }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
