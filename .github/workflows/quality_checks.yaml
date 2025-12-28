@@ -3,8 +3,14 @@ name: Quality Checks (typecheck / lint / format)
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+    paths-ignore:
+      - '**/*.md'
+      - '.coderabbit.yaml'
   push:
     branches: [main]
+    paths-ignore:
+      - '**/*.md'
+      - '.coderabbit.yaml'
   workflow_dispatch: {}
 
 concurrency:
