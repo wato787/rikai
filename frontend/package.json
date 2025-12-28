@@ -6,7 +6,11 @@
   "scripts": {
     "dev": "bun --hot src/index.ts",
     "build": "bun build ./src/index.html --outdir=dist --sourcemap --target=browser --minify --define:process.env.NODE_ENV='\"production\"' --env='BUN_PUBLIC_*'",
-    "start": "NODE_ENV=production bun src/index.ts"
+    "start": "NODE_ENV=production bun src/index.ts",
+    "lint": "oxlint -c ../.oxlintrc.json --import-plugin --react-plugin --jsx-a11y-plugin --tsconfig ./tsconfig.json ./src",
+    "lint:fix": "oxlint -c ../.oxlintrc.json --import-plugin --react-plugin --jsx-a11y-plugin --tsconfig ./tsconfig.json --fix ./src",
+    "format": "oxfmt -c ../.oxfmtrc.json --write ./src",
+    "format:check": "oxfmt -c ../.oxfmtrc.json --check ./src"
   },
   "dependencies": {
     "react": "^19",

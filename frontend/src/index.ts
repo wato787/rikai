@@ -8,13 +8,13 @@ const server = serve({
     "/*": index,
 
     "/api/hello": {
-      async GET(req) {
+      async GET(_req) {
         return Response.json({
           message: "Hello, world!",
           method: "GET",
         });
       },
-      async PUT(req) {
+      async PUT(_req) {
         return Response.json({
           message: "Hello, world!",
           method: "PUT",
@@ -22,7 +22,7 @@ const server = serve({
       },
     },
 
-    "/api/hello/:name": async req => {
+    "/api/hello/:name": async (req) => {
       const name = req.params.name;
       return Response.json({
         message: `Hello, ${name}!`,
