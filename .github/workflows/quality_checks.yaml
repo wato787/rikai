@@ -69,10 +69,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup mise (bun from mise.toml)
+        uses: jdx/mise-action@v3
         with:
-          bun-version: latest
+          install_args: "bun"
           cache: true
 
       - name: Install dependencies
@@ -101,10 +101,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup mise (bun from mise.toml)
+        uses: jdx/mise-action@v3
         with:
-          bun-version: latest
+          install_args: "bun"
           cache: true
 
       - name: Install dependencies
