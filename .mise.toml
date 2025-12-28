@@ -1,0 +1,5 @@
+[tools]
+# Install Bun via mise.
+# Pin a specific version if you need strict reproducibility (e.g. "1.1.45").
+bun = "latest"
+
