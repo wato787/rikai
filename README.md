@@ -1,1 +1,52 @@
 # rikai
+
+モノレポ構成のフルスタックアプリケーション
+
+## 構成
+
+- `backend/`: Hono + Bun バックエンド
+- `frontend/`: React + Bun フロントエンド
+
+## 初回セットアップ
+
+### 依存関係のインストール
+
+```bash
+mise run install
+```
+
+### 開発サーバーの起動
+
+```bash
+# バックエンドとフロントエンドを並列起動
+mise run dev
+```
+
+起動後、以下の URL でアクセスできます：
+
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8080
+
+## 開発コマンド
+
+```bash
+# すべて起動（並列）
+mise run dev
+
+# バックエンドのみ起動
+mise run dev:backend
+
+# フロントエンドのみ起動
+mise run dev:frontend
+
+# ビルド
+mise run build
+mise run build:backend
+mise run build:frontend
+
+# クリーンアップ
+mise run clean
+
+# タスク一覧
+mise tasks
+```

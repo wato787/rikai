@@ -1,0 +1,39 @@
+[tools]
+bun = "latest"
+
+# 環境変数の設定（必要に応じて追加）
+[env]
+NODE_ENV = "development"
+
+# タスク定義
+[tasks.dev]
+description = "バックエンドとフロントエンドを並行起動"
+depends = ["dev:backend", "dev:frontend"]
+
+[tasks."dev:backend"]
+description = "バックエンド開発サーバーを起動"
+run = "bun run dev:backend"
+
+[tasks."dev:frontend"]
+description = "フロントエンド開発サーバーを起動"
+run = "bun run dev:frontend"
+
+[tasks.build]
+description = "全パッケージをビルド"
+run = "bun run build"
+
+[tasks."build:backend"]
+description = "バックエンドをビルド"
+run = "bun run build:backend"
+
+[tasks."build:frontend"]
+description = "フロントエンドをビルド"
+run = "bun run build:frontend"
+
+[tasks.install]
+description = "全ての依存関係をインストール"
+run = "bun install"
+
+[tasks.clean]
+description = "node_modulesとビルド成果物を削除"
+run = "bun run clean:script"

@@ -1,0 +1,12 @@
+{
+  "name": "backend",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --hot src/index.ts",
+    "build": "bun build src/index.ts --outdir=dist --target=bun",
+    "start": "bun dist/index.js"
+  },
+  "dependencies": {
+    "hono": "^4.11.3"
+  }
+}
