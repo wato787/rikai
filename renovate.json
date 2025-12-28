@@ -12,7 +12,9 @@
   "schedule": ["before 10am on monday"],
   "osvVulnerabilityAlerts": true,
   "vulnerabilityAlerts": {
-    "enabled": true
+    "enabled": true,
+    "labels": ["security"],
+    "schedule": ["at any time"]
   },
   "rebaseWhen": "conflicted",
   "labels": ["dependencies"],
@@ -26,7 +28,7 @@
   "packageRules": [
     {
       "description": "脆弱性対応はスケジュール外で即時にPR作成し、優先度を上げる",
-      "matchManagers": ["osv", "vulnerabilityAlerts"],
+      "matchUpdateTypes": ["vulnerability"],
       "schedule": ["at any time"],
       "prPriority": 100,
       "addLabels": ["security"],
