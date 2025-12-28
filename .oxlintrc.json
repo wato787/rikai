@@ -6,7 +6,6 @@
     "oxc",
     "react"
   ],
-  "categories": {},
   "rules": {
     "constructor-super": "warn",
     "for-direction": "warn",
