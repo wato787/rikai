@@ -14,10 +14,11 @@
     "build:backend": "bun run --filter backend build",
     "build:frontend": "bun run --filter frontend build",
     "start:backend": "bun run --filter backend start",
-    "start:frontend": "bun run --filter frontend start"
+    "start:frontend": "bun run --filter frontend start",
+    "clean:script": "node -e \"const fs=require('fs');['node_modules','backend/node_modules','frontend/node_modules','backend/dist','frontend/dist'].forEach(p=>{try{fs.rmSync(p,{recursive:true,force:true})}catch(e){}})\""
   },
   "devDependencies": {
-    "@types/node": "^20.11.17",
+    "@types/node": "^24.0.0",
     "typescript": "^5.8.3"
   }
 }
