@@ -1,0 +1,78 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "mise: install",
+      "type": "shell",
+      "command": "mise",
+      "args": ["run", "install"],
+      "problemMatcher": []
+    },
+    {
+      "label": "mise: dev",
+      "type": "shell",
+      "command": "mise",
+      "args": ["run", "dev"],
+      "problemMatcher": [],
+      "isBackground": true
+    },
+    {
+      "label": "mise: dev:backend",
+      "type": "shell",
+      "command": "mise",
+      "args": ["run", "dev:backend"],
+      "problemMatcher": [],
+      "isBackground": true
+    },
+    {
+      "label": "mise: dev:frontend",
+      "type": "shell",
+      "command": "mise",
+      "args": ["run", "dev:frontend"],
+      "problemMatcher": [],
+      "isBackground": true
+    },
+    {
+      "label": "mise: lint",
+      "type": "shell",
+      "command": "mise",
+      "args": ["run", "lint"],
+      "problemMatcher": []
+    },
+    {
+      "label": "mise: lint:fix",
+      "type": "shell",
+      "command": "mise",
+      "args": ["run", "lint:fix"],
+      "problemMatcher": []
+    },
+    {
+      "label": "mise: format",
+      "type": "shell",
+      "command": "mise",
+      "args": ["run", "format"],
+      "problemMatcher": []
+    },
+    {
+      "label": "mise: format:check",
+      "type": "shell",
+      "command": "mise",
+      "args": ["run", "format:check"],
+      "problemMatcher": []
+    },
+    {
+      "label": "mise: typecheck",
+      "type": "shell",
+      "command": "mise",
+      "args": ["run", "typecheck"],
+      "problemMatcher": []
+    },
+    {
+      "label": "mise: check",
+      "type": "shell",
+      "command": "mise",
+      "args": ["run", "check"],
+      "problemMatcher": []
+    }
+  ]
+}
