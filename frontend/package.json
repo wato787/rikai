@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "dotenvx run -- vite",
-    "build": "vite build",
+    "build": "dotenvx run -- vite build",
     "preview": "dotenvx run -- vite preview",
     "lint": "oxlint -c ../.oxlintrc.json --import-plugin --react-plugin --jsx-a11y-plugin --tsconfig ./tsconfig.json ./src",
     "lint:fix": "oxlint -c ../.oxlintrc.json --import-plugin --react-plugin --jsx-a11y-plugin --tsconfig ./tsconfig.json --fix ./src",
