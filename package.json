@@ -26,6 +26,7 @@
     "check": "bun run lint && bun run format:check"
   },
   "devDependencies": {
+    "@dotenvx/dotenvx": "^1.51.4",
     "@types/node": "^25.0.0",
     "@typescript/native-preview": "^7.0.0-dev.20251227.1",
     "oxfmt": "^0.20.0",

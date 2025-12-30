@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "dotenvx run -- vite",
     "build": "vite build",
-    "preview": "vite preview",
+    "preview": "dotenvx run -- vite preview",
     "lint": "oxlint -c ../.oxlintrc.json --import-plugin --react-plugin --jsx-a11y-plugin --tsconfig ./tsconfig.json ./src",
     "lint:fix": "oxlint -c ../.oxlintrc.json --import-plugin --react-plugin --jsx-a11y-plugin --tsconfig ./tsconfig.json --fix ./src",
     "format": "oxfmt -c ../.oxfmtrc.json --write ./src",
