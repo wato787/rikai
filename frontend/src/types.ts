@@ -4,6 +4,14 @@ export enum TaskStatus {
   COMPLETED = "completed",
 }
 
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  avatarId: string; // Selection from a predefined set of avatars
+  bio?: string;
+}
+
 export interface DetailedContent {
   explanation: string;
   keyPoints: string[];
