@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Mail, Lock, User as UserIcon, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Mail, Lock, ArrowRight, CheckCircle2 } from "lucide-react";
 import type { User } from "../types";
 
 interface AuthProps {
@@ -10,13 +10,12 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const mockUser: User = {
       id: Math.random().toString(36).substr(2, 9),
-      name: name || "Rikai ユーザー",
+      name: "Rikai ユーザー",
       email: email || "user@rikai.ai",
       avatarId: "1",
       bio: "Rikaiで学びを深めています。",
@@ -110,28 +109,6 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {!isLogin && (
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
-                  Display Name
-                </label>
-                <div className="relative group">
-                  <UserIcon
-                    className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors"
-                    size={20}
-                  />
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="名前を入力"
-                    className="w-full pl-14 pr-6 py-4 bg-slate-50 border-transparent focus:bg-white focus:ring-4 focus:ring-indigo-50/50 rounded-2xl transition-all font-bold text-slate-700"
-                    required={!isLogin}
-                  />
-                </div>
-              </div>
-            )}
-
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
                 Email
