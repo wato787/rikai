@@ -1,8 +1,7 @@
-
 export enum TaskStatus {
-  PENDING = 'pending',
-  IN_PROGRESS = 'in_progress',
-  COMPLETED = 'completed'
+  PENDING = "pending",
+  IN_PROGRESS = "in_progress",
+  COMPLETED = "completed",
 }
 
 export interface DetailedContent {
@@ -43,7 +42,7 @@ export interface Curriculum {
 }
 
 export interface ChatMessage {
-  role: 'user' | 'model';
+  role: "user" | "model";
   text: string;
   timestamp: number;
 }

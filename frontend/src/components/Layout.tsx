@@ -1,15 +1,14 @@
-
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Home, Plus, BookOpen, BrainCircuit } from 'lucide-react';
+import React from "react";
+import { Link, useLocation } from "react-router-dom";
+import { Home, Plus, BookOpen, BrainCircuit } from "lucide-react";
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
 
   const navItems = [
-    { icon: <Home size={22} />, label: 'ホーム', path: '/' },
-    { icon: <Plus size={22} />, label: '作成', path: '/create' },
-    { icon: <BookOpen size={22} />, label: 'ライブラリ', path: '/list' },
+    { icon: <Home size={22} />, label: "ホーム", path: "/" },
+    { icon: <Plus size={22} />, label: "作成", path: "/create" },
+    { icon: <BookOpen size={22} />, label: "ライブラリ", path: "/list" },
   ];
 
   return (
@@ -28,12 +27,14 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               to={item.path}
               className={`flex items-center justify-center lg:justify-start gap-4 px-3 py-3 rounded-2xl transition-all duration-200 group ${
                 location.pathname === item.path
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100'
-                  : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
+                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100"
+                  : "text-slate-400 hover:bg-slate-50 hover:text-slate-600"
               }`}
             >
               <div className="flex-shrink-0">{item.icon}</div>
-              <span className={`hidden lg:block font-medium ${location.pathname === item.path ? 'text-white' : ''}`}>
+              <span
+                className={`hidden lg:block font-medium ${location.pathname === item.path ? "text-white" : ""}`}
+              >
                 {item.label}
               </span>
             </Link>
@@ -43,9 +44,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
       {/* Main Content */}
       <main className="flex-1 h-screen overflow-y-auto bg-[#F8FAFC] no-scrollbar">
-        <div className="max-w-5xl mx-auto px-6 py-8 md:py-12">
-          {children}
-        </div>
+        <div className="max-w-5xl mx-auto px-6 py-8 md:py-12">{children}</div>
       </main>
     </div>
   );

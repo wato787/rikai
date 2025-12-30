@@ -1,16 +1,7 @@
 import React from "react";
 import type { Curriculum } from "../types";
 import { TaskStatus } from "../types";
-import {
-  Clock,
-  ArrowRight,
-  Star,
-  Plus,
-  BrainCircuit,
-  Flame,
-  Trophy,
-  Calendar,
-} from 'lucide-react';
+import { Clock, ArrowRight, Star, Plus, BrainCircuit, Flame, Trophy, Calendar } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface DashboardProps {

@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import type { Curriculum, DetailedContent } from "@/types";
 
@@ -10,7 +9,7 @@ const ai = new GoogleGenAI({ apiKey: apiKey || "" });
  */
 export const generateCurriculum = async (goal: string, experience: string): Promise<Curriculum> => {
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+    model: "gemini-3-pro-preview",
     contents: `目標: 「${goal}」、経験: 「${experience}」。
     この目標を達成するための体系的な学習ロードマップをJSONで作成してください。
     各タスクはタイトルと概要のみでOKです。`,
@@ -36,22 +35,22 @@ export const generateCurriculum = async (goal: string, experience: string): Prom
                     properties: {
                       title: { type: Type.STRING },
                       description: { type: Type.STRING },
-                      estimatedHours: { type: Type.NUMBER }
+                      estimatedHours: { type: Type.NUMBER },
                     },
-                    required: ["title", "description", "estimatedHours"]
-                  }
-                }
+                    required: ["title", "description", "estimatedHours"],
+                  },
+                },
               },
-              required: ["title", "tasks"]
-            }
-          }
+              required: ["title", "tasks"],
+            },
+          },
         },
-        required: ["title", "description", "level", "totalEstimatedHours", "modules"]
-      }
-    }
+        required: ["title", "description", "level", "totalEstimatedHours", "modules"],
+      },
+    },
   });
 
-  const rawData = JSON.parse(response.text || '{}');
+  const rawData = JSON.parse(response.text || "{}");
 
   return {
     ...rawData,
@@ -64,18 +63,21 @@ export const generateCurriculum = async (goal: string, experience: string): Prom
       tasks: (m.tasks || []).map((t: any, tIdx: number) => ({
         ...t,
         id: `task-${mIdx}-${tIdx}`,
-        status: 'pending'
-      }))
-    }))
+        status: "pending",
+      })),
+    })),
   };
 };
 
 /**
  * 特定のタスクの「詳細解説」と「クイズ」を生成
  */
-export const generateTaskContent = async (curriculumTitle: string, taskTitle: string): Promise<DetailedContent> => {
+export const generateTaskContent = async (
+  curriculumTitle: string,
+  taskTitle: string,
+): Promise<DetailedContent> => {
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
+    model: "gemini-3-flash-preview",
     contents: `カリキュラム「${curriculumTitle}」のトピック「${taskTitle}」について、
     初心者にも分かりやすい解説と理解度チェッククイズを作成してください。`,
     config: {
@@ -83,39 +85,51 @@ export const generateTaskContent = async (curriculumTitle: string, taskTitle: st
       responseSchema: {
         type: Type.OBJECT,
         properties: {
-          explanation: { type: Type.STRING, description: "300文字程度の分かりやすい解説。Markdown形式（太字など）を使用可。" },
+          explanation: {
+            type: Type.STRING,
+            description: "300文字程度の分かりやすい解説。Markdown形式（太字など）を使用可。",
+          },
           keyPoints: {
             type: Type.ARRAY,
             items: { type: Type.STRING },
-            description: "覚えておくべき重要ポイント3つ"
+            description: "覚えておくべき重要ポイント3つ",
           },
           quiz: {
             type: Type.OBJECT,
             properties: {
               question: { type: Type.STRING },
-              options: { type: Type.ARRAY, items: { type: Type.STRING }, description: "4択の選択肢" },
+              options: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+                description: "4択の選択肢",
+              },
               correctAnswer: { type: Type.INTEGER, description: "0-3のインデックス" },
-              explanation: { type: Type.STRING, description: "クイズの正解・不正解に関する解説" }
+              explanation: { type: Type.STRING, description: "クイズの正解・不正解に関する解説" },
             },
-            required: ["question", "options", "correctAnswer", "explanation"]
-          }
+            required: ["question", "options", "correctAnswer", "explanation"],
+          },
         },
-        required: ["explanation", "keyPoints", "quiz"]
-      }
-    }
+        required: ["explanation", "keyPoints", "quiz"],
+      },
+    },
   });
 
-  return JSON.parse(response.text || '{}');
+  return JSON.parse(response.text || "{}");
 };
 
-export const getLearningSupport = async (curriculum: Curriculum, currentTask: string, userMessage: string, _history: any[]) => {
+export const getLearningSupport = async (
+  curriculum: Curriculum,
+  currentTask: string,
+  userMessage: string,
+  _history: any[],
+) => {
   const chat = ai.chats.create({
-    model: 'gemini-3-flash-preview',
+    model: "gemini-3-flash-preview",
     config: {
       systemInstruction: `あなたは「MindMap AI」の専属メンターです。
       「${curriculum.title}」の「${currentTask}」を学習中のユーザーをサポートします。
       親しみやすく、専門的な内容も噛み砕いて教えてください。`,
-    }
+    },
   });
 
   const result = await chat.sendMessage({ message: userMessage });

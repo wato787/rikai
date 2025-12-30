@@ -1,25 +1,33 @@
-
-import React, { useState } from 'react';
-import type { Curriculum } from '../types';
-import { TaskStatus } from '../types';
-import { BookOpen, Search, Filter, Clock, CheckCircle2, MoreVertical, ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import React, { useState } from "react";
+import type { Curriculum } from "../types";
+import { TaskStatus } from "../types";
+import {
+  BookOpen,
+  Search,
+  Filter,
+  Clock,
+  CheckCircle2,
+  MoreVertical,
+  ArrowRight,
+} from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface LibraryProps {
   curriculums: Curriculum[];
 }
 
 export const Library: React.FC<LibraryProps> = ({ curriculums }) => {
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
 
-  const filtered = curriculums.filter(c =>
-    c.title.toLowerCase().includes(search.toLowerCase()) ||
-    c.goal.toLowerCase().includes(search.toLowerCase())
+  const filtered = curriculums.filter(
+    (c) =>
+      c.title.toLowerCase().includes(search.toLowerCase()) ||
+      c.goal.toLowerCase().includes(search.toLowerCase()),
   );
 
   const getProgress = (c: Curriculum) => {
-    const all = c.modules.flatMap(m => m.tasks);
-    const done = all.filter(t => t.status === TaskStatus.COMPLETED).length;
+    const all = c.modules.flatMap((m) => m.tasks);
+    const done = all.filter((t) => t.status === TaskStatus.COMPLETED).length;
     return Math.round((done / all.length) * 100);
   };
 
@@ -27,7 +35,9 @@ export const Library: React.FC<LibraryProps> = ({ curriculums }) => {
     <div className="space-y-8 animate-in fade-in duration-700">
       <header>
         <h1 className="text-3xl font-black text-slate-900 tracking-tight">マイ・ライブラリ</h1>
-        <p className="text-slate-500 mt-1 font-medium">これまでに作成したすべての学習パスを管理します。</p>
+        <p className="text-slate-500 mt-1 font-medium">
+          これまでに作成したすべての学習パスを管理します。
+        </p>
       </header>
 
       {/* Search and Filters */}
@@ -51,7 +61,7 @@ export const Library: React.FC<LibraryProps> = ({ curriculums }) => {
       {/* Grid */}
       {filtered.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map(curr => (
+          {filtered.map((curr) => (
             <Link
               key={curr.id}
               to={`/curriculum/${curr.id}`}
@@ -67,7 +77,9 @@ export const Library: React.FC<LibraryProps> = ({ curriculums }) => {
               </div>
 
               <div className="flex-1">
-                <div className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">{curr.level}</div>
+                <div className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">
+                  {curr.level}
+                </div>
                 <h3 className="text-xl font-bold text-slate-900 mb-2 leading-tight group-hover:text-indigo-600 transition-colors">
                   {curr.title}
                 </h3>
@@ -78,8 +90,12 @@ export const Library: React.FC<LibraryProps> = ({ curriculums }) => {
 
               <div className="pt-6 border-t border-slate-50 space-y-4">
                 <div className="flex items-center justify-between text-xs font-bold text-slate-400">
-                  <span className="flex items-center gap-1.5"><Clock size={14} /> {curr.totalEstimatedHours}h</span>
-                  <span className="flex items-center gap-1.5"><CheckCircle2 size={14} /> {getProgress(curr)}%</span>
+                  <span className="flex items-center gap-1.5">
+                    <Clock size={14} /> {curr.totalEstimatedHours}h
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <CheckCircle2 size={14} /> {getProgress(curr)}%
+                  </span>
                 </div>
                 <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
                   <div

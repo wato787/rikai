@@ -15,11 +15,7 @@ function App() {
     setCurriculums((prev) => [curriculum, ...prev]);
   };
 
-  const handleUpdateTask = (
-    curriculumId: string,
-    taskId: string,
-    status: TaskStatus
-  ) => {
+  const handleUpdateTask = (curriculumId: string, taskId: string, status: TaskStatus) => {
     setCurriculums((prev) =>
       prev.map((c) => {
         if (c.id !== curriculumId) return c;
@@ -27,20 +23,14 @@ function App() {
           ...c,
           modules: c.modules.map((m) => ({
             ...m,
-            tasks: m.tasks.map((t) =>
-              t.id === taskId ? { ...t, status } : t
-            ),
+            tasks: m.tasks.map((t) => (t.id === taskId ? { ...t, status } : t)),
           })),
         };
-      })
+      }),
     );
   };
 
-  const handleSetTaskContent = (
-    curriculumId: string,
-    taskId: string,
-    content: DetailedContent
-  ) => {
+  const handleSetTaskContent = (curriculumId: string, taskId: string, content: DetailedContent) => {
     setCurriculums((prev) =>
       prev.map((c) => {
         if (c.id !== curriculumId) return c;
@@ -48,12 +38,10 @@ function App() {
           ...c,
           modules: c.modules.map((m) => ({
             ...m,
-            tasks: m.tasks.map((t) =>
-              t.id === taskId ? { ...t, content } : t
-            ),
+            tasks: m.tasks.map((t) => (t.id === taskId ? { ...t, content } : t)),
           })),
         };
-      })
+      }),
     );
   };
 
@@ -83,15 +71,9 @@ function App() {
       <Layout>
         <Routes>
           <Route path="/" element={<Dashboard curriculums={curriculums} />} />
-          <Route
-            path="/create"
-            element={<CurriculumCreator onCreated={handleCreated} />}
-          />
+          <Route path="/create" element={<CurriculumCreator onCreated={handleCreated} />} />
           <Route path="/list" element={<Library curriculums={curriculums} />} />
-          <Route
-            path="/curriculum/:id"
-            element={<CurriculumDetailWrapper />}
-          />
+          <Route path="/curriculum/:id" element={<CurriculumDetailWrapper />} />
         </Routes>
       </Layout>
     </BrowserRouter>
