@@ -18,7 +18,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, user }) => {
   ];
 
   const isAuthPage = location.pathname === "/auth";
-  if (isAuthPage) return <>{children}</>;
+  const isCurriculumDetailPage = location.pathname.includes("/curriculum/");
+  if (isAuthPage || isCurriculumDetailPage) return <>{children}</>;
 
   const isGuest = user?.id === "guest";
 
