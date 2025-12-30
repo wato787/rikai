@@ -1,7 +1,6 @@
-
-import React, { useState } from 'react';
-import { Compass, Mail, Lock, User as UserIcon, ArrowRight, CheckCircle2 } from 'lucide-react';
-import type { User } from '../types';
+import React, { useState } from "react";
+import { Mail, Lock, User as UserIcon, ArrowRight, CheckCircle2 } from "lucide-react";
+import type { User } from "../types";
 
 interface AuthProps {
   onLogin: (user: User) => void;
@@ -9,18 +8,18 @@ interface AuthProps {
 
 export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const mockUser: User = {
       id: Math.random().toString(36).substr(2, 9),
-      name: name || 'Rikai ユーザー',
-      email: email || 'user@rikai.ai',
-      avatarId: '1',
-      bio: 'Rikaiで学びを深めています。'
+      name: name || "Rikai ユーザー",
+      email: email || "user@rikai.ai",
+      avatarId: "1",
+      bio: "Rikaiで学びを深めています。",
     };
     onLogin(mockUser);
   };
@@ -30,11 +29,13 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       {/* Background Decorative Elements */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-indigo-50 rounded-full blur-[120px] opacity-60 animate-pulse"></div>
-        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-blue-50 rounded-full blur-[120px] opacity-60 animate-pulse" style={{ animationDelay: '2s' }}></div>
+        <div
+          className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-blue-50 rounded-full blur-[120px] opacity-60 animate-pulse"
+          style={{ animationDelay: "2s" }}
+        ></div>
       </div>
 
       <div className="w-full max-w-[1000px] grid grid-cols-1 lg:grid-cols-2 bg-white rounded-[48px] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.1)] border border-slate-100 overflow-hidden relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-
         {/* Left Side: Brand & Visual */}
         <div className="hidden lg:flex flex-col justify-between p-16 bg-slate-900 text-white relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
@@ -43,15 +44,16 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
 
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-12">
-              <div className="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                <Compass size={24} />
+              <div className="w-10 h-10 flex items-center justify-center">
+                <img src="/assets/logo.png" alt="Rikai" className="w-full h-full object-contain" />
               </div>
               <span className="text-2xl font-black tracking-tighter">Rikai</span>
             </div>
 
             <div className="space-y-6 max-w-sm">
               <h2 className="text-5xl font-black leading-tight tracking-tight">
-                「わかる」を、<br />
+                「わかる」を、
+                <br />
                 もっと加速させる。
               </h2>
               <p className="text-slate-400 font-medium text-lg leading-relaxed">
@@ -79,27 +81,29 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         {/* Right Side: Form */}
         <div className="p-10 md:p-16 flex flex-col justify-center">
           <div className="mb-10 lg:hidden text-center">
-             <div className="inline-flex p-4 bg-indigo-600 text-white rounded-2xl mb-4">
-                <Compass size={32} />
-             </div>
-             <h1 className="text-3xl font-black text-slate-900">Rikai</h1>
+            <div className="inline-flex w-16 h-16 items-center justify-center mb-4">
+              <img src="/assets/logo.png" alt="Rikai" className="w-full h-full object-contain" />
+            </div>
+            <h1 className="text-3xl font-black text-slate-900">Rikai</h1>
           </div>
 
           <div className="mb-8">
-            <h3 className="text-3xl font-black text-slate-900 mb-2">{isLogin ? 'おかえりなさい' : 'アカウント作成'}</h3>
+            <h3 className="text-3xl font-black text-slate-900 mb-2">
+              {isLogin ? "おかえりなさい" : "アカウント作成"}
+            </h3>
             <p className="text-slate-400 font-bold">Rikai の世界へようこそ。</p>
           </div>
 
           <div className="flex bg-slate-50 p-1.5 rounded-2xl mb-8">
             <button
               onClick={() => setIsLogin(true)}
-              className={`flex-1 py-3 rounded-xl text-sm font-black transition-all ${isLogin ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+              className={`flex-1 py-3 rounded-xl text-sm font-black transition-all ${isLogin ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
             >
               ログイン
             </button>
             <button
               onClick={() => setIsLogin(false)}
-              className={`flex-1 py-3 rounded-xl text-sm font-black transition-all ${!isLogin ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+              className={`flex-1 py-3 rounded-xl text-sm font-black transition-all ${!isLogin ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
             >
               新規登録
             </button>
@@ -108,9 +112,14 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           <form onSubmit={handleSubmit} className="space-y-5">
             {!isLogin && (
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Display Name</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
+                  Display Name
+                </label>
                 <div className="relative group">
-                  <UserIcon className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors" size={20} />
+                  <UserIcon
+                    className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors"
+                    size={20}
+                  />
                   <input
                     type="text"
                     value={name}
@@ -124,9 +133,14 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             )}
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Email</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
+                Email
+              </label>
               <div className="relative group">
-                <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors" size={20} />
+                <Mail
+                  className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors"
+                  size={20}
+                />
                 <input
                   type="email"
                   value={email}
@@ -139,9 +153,14 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Password</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
+                Password
+              </label>
               <div className="relative group">
-                <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors" size={20} />
+                <Lock
+                  className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors"
+                  size={20}
+                />
                 <input
                   type="password"
                   value={password}
@@ -157,7 +176,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
               type="submit"
               className="w-full py-5 bg-indigo-600 text-white rounded-[24px] font-black text-lg hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 active:scale-95 flex items-center justify-center gap-3 group mt-4"
             >
-              {isLogin ? 'Rikai を開始' : 'アカウント作成'}
+              {isLogin ? "Rikai を開始" : "アカウント作成"}
               <ArrowRight size={22} className="group-hover:translate-x-1 transition-transform" />
             </button>
           </form>
