@@ -1,0 +1,57 @@
+# Cursor（AIインデックス）から除外したいファイル/フォルダ
+# - 生成物（ビルド/カバレッジ/キャッシュ）
+# - 依存物（node_modules 等）
+# - 機密情報（.env 等）
+# - 大容量/バイナリ（ログ・アーカイブ等）
+
+# VCS
+.git/
+
+# 依存関係
+**/node_modules/
+
+# ビルド成果物
+**/dist/
+**/build/
+**/out/
+**/.next/
+**/.nuxt/
+**/.svelte-kit/
+**/.astro/
+
+# カバレッジ/レポート
+**/coverage/
+**/.nyc_output/
+
+# ツール/ビルドキャッシュ
+**/.cache/
+**/.parcel-cache/
+**/.turbo/
+**/.vite/
+**/.eslintcache
+
+# Bun
+**/.bun/
+
+# ログ/一時ファイル
+**/*.log
+**/*.tmp
+**/*.temp
+**/.DS_Store
+
+# 環境変数/秘密情報
+.env
+.env.*
+
+# 典型的なバイナリ/アーカイブ（巨大化しやすい）
+**/*.zip
+**/*.tar
+**/*.tar.gz
+**/*.tgz
+**/*.gz
+**/*.7z
+**/*.rar
+
+# ローカルIDE設定
+.idea/
+.vscode/
