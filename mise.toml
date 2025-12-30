@@ -1,5 +1,6 @@
 [tools]
 bun = "1.3.5"
+"npm:@dotenvx/dotenvx" = "latest"
 
 # 環境変数の設定（必要に応じて追加）
 [env]
@@ -69,3 +70,28 @@ run = "bun run format:check"
 [tasks.check]
 description = "lint + format:check"
 run = "bun run check"
+
+# dotenvx タスク
+[tasks."dotenvx:help"]
+description = "dotenvxのヘルプを表示"
+run = "bun dotenvx help"
+
+[tasks."dotenvx:get:backend"]
+description = "バックエンドの環境変数を取得"
+dir = "backend"
+run = "bun dotenvx get"
+
+[tasks."dotenvx:get:frontend"]
+description = "フロントエンドの環境変数を取得"
+dir = "frontend"
+run = "bun dotenvx get"
+
+[tasks."dotenvx:encrypt:backend"]
+description = "バックエンドの環境変数を暗号化"
+dir = "backend"
+run = "bun dotenvx encrypt"
+
+[tasks."dotenvx:encrypt:frontend"]
+description = "フロントエンドの環境変数を暗号化"
+dir = "frontend"
+run = "bun dotenvx encrypt"
