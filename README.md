@@ -66,3 +66,19 @@ mise run typecheck:frontend
 # バックエンドのみ
 mise run typecheck:backend
 ```
+
+## 環境変数管理 (dotenvx)
+
+```bash
+# バックエンドの環境変数を取得
+mise dotenvx:get:backend
+
+# フロントエンドの環境変数を取得
+mise dotenvx:get:frontend
+
+# バックエンドの環境変数を暗号化
+mise dotenvx:encrypt:backend
+
+# フロントエンドの環境変数を暗号化
+mise dotenvx:encrypt:frontend
+```

@@ -15,21 +15,23 @@ dotenvx は、環境変数を安全に管理するためのツールです。従
 
 ```bash
 # バックエンドの環境変数を暗号化
-cd backend
-bun dotenvx encrypt
+mise dotenvx:encrypt:backend
 
 # フロントエンドの環境変数を暗号化
-cd frontend
-bun dotenvx encrypt
+mise dotenvx:encrypt:frontend
 ```
 
 ### 2. 環境変数を取得
 
 ```bash
-# 現在の環境変数を表示
-bun dotenvx get
+# バックエンドの環境変数を表示
+mise dotenvx:get:backend
 
-# 特定の変数を取得
+# フロントエンドの環境変数を表示
+mise dotenvx:get:frontend
+
+# 特定の変数を取得（bunコマンドを直接使用）
+cd backend
 bun dotenvx get API_KEY
 ```
 
@@ -37,9 +39,9 @@ bun dotenvx get API_KEY
 
 ```bash
 # コマンド一覧を表示
-bun dotenvx help
+mise dotenvx:help
 
-# 特定のコマンドのヘルプ
+# 特定のコマンドのヘルプ（bunコマンドを使用）
 bun dotenvx help encrypt
 ```
 
