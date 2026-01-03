@@ -11,8 +11,10 @@
     "format:check": "oxfmt -c ../.oxfmtrc.json --check ./src"
   },
   "dependencies": {
-    "drizzle-kit": "^0.30.0",
     "drizzle-orm": "^0.36.4",
     "hono": "^4.11.3"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.30.0"
   }
 }
