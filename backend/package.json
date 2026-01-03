@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "dotenvx run -- bun --hot src/index.ts",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "wrangler d1 migrations apply rikai_db --local",
+    "db:migrate": "bunx wrangler d1 migrations apply rikai_db --local",
     "db:studio": "drizzle-kit studio",
     "build": "bun build src/index.ts --outdir=dist --target=bun",
     "start": "dotenvx run -- bun dist/index.js",
