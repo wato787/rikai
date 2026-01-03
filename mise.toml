@@ -96,3 +96,18 @@ run = "bun dotenvx encrypt"
 description = "フロントエンドの環境変数を暗号化"
 dir = "frontend"
 run = "bun dotenvx encrypt"
+
+[tasks."db:generate"]
+description = "データベースのマイグレーションを生成"
+dir = "backend"
+run = "bun run db:generate"
+
+[tasks."db:migrate"]
+description = "データベースのマイグレーションを適用"
+dir = "backend"
+run = "bun run db:migrate"
+
+[tasks."db:studio"]
+description = "データベースのスタジオを起動"
+dir = "backend"
+run = "bun run db:studio"

@@ -8,6 +8,7 @@ compatibility_date = "2026-01-03"
 binding = "rikai_db"
 database_name = "rikai-db"
 database_id = "ad5103ef-3514-43a6-ac53-5ffe88041fe6"
+migrations_dir = "drizzle"
 
 # 2. 環境変数
 [vars]
