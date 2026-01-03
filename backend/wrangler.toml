@@ -17,3 +17,9 @@ FRONTEND_URL = "https://0bcbd398.rikai.pages.dev/"
 # 3. ログ・監視設定
 [observability]
 enabled = true
+
+# 4. 開発環境設定
+[dev]
+port = 8080
+local_protocol = "http"
+upstream_protocol = "https"
