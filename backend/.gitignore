@@ -30,3 +30,8 @@ lerna-debug.log*
 .wrangler
 
 .dev.vars
+
+# database
+*.db
+*.db-shm
+*.db-wal

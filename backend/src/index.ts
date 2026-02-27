@@ -15,12 +15,11 @@ app.get("/", (c) => {
 });
 
 app.on(["POST", "GET"], "/api/auth/*", (c) => {
-    const auth = initAuth(c.env.rikai_db);
-    return auth.handler(c.req.raw);
+  const auth = initAuth(c.env.rikai_db);
+  return auth.handler(c.req.raw);
 });
 
 export default {
   port: 8080,
   fetch: app.fetch,
 };
-
