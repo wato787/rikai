@@ -1,16 +1,23 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { RoadmapsList } from "@/features/roadmap/roadmaps-list";
+import { useRoadmapMock } from "@/features/roadmap/roadmap-mock-context";
 
 export const Route = createFileRoute("/")({
   component: IndexPage,
 });
 
 function IndexPage() {
+  const navigate = useNavigate();
+  const { roadmaps, openCreateModal, deleteRoadmap } = useRoadmapMock();
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-8">
-      <div className="text-center space-y-2">
-        <h1 className="text-2xl font-bold text-slate-900">Rikai</h1>
-        <p className="text-slate-600 text-sm">アプリは再構築予定です。</p>
-      </div>
-    </div>
+    <RoadmapsList
+      roadmaps={roadmaps}
+      onSelect={(r) => {
+        void navigate({ to: "/roadmap/$roadmapId", params: { roadmapId: r.id } });
+      }}
+      onDelete={deleteRoadmap}
+      onCreateClick={openCreateModal}
+    />
   );
 }
