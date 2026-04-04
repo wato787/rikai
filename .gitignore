@@ -29,3 +29,5 @@ Thumbs.db
 # Misc
 *.tsbuildinfo
 .mise.lock
+
+tmp/
