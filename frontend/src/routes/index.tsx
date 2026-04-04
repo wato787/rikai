@@ -1,6 +1,10 @@
-import "./index.css";
+import { createFileRoute } from "@tanstack/react-router";
 
-export default function App() {
+export const Route = createFileRoute("/")({
+  component: IndexPage,
+});
+
+function IndexPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-8">
       <div className="text-center space-y-2">
