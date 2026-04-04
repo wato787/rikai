@@ -11,7 +11,8 @@ import {
   Position,
   ReactFlow,
 } from "reactflow";
-import { CheckCircle2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import { motion } from "motion/react";
 import { Link } from "@tanstack/react-router";
 import type { Roadmap, RoadmapNode } from "@/types/roadmap";
 
@@ -73,9 +74,12 @@ function RoadmapNodeComponent({ data }: NodeProps) {
             ) : null}
           </div>
 
-          <span className="shrink-0 p-1 text-zinc-300 opacity-0 group-hover:opacity-100 font-bold text-[10px]">
+          <button
+            type="button"
+            className="shrink-0 p-1 text-zinc-300 hover:text-zinc-900 transition-colors opacity-0 group-hover:opacity-100 font-bold text-[10px]"
+          >
             編集
-          </span>
+          </button>
         </div>
 
         <div className="mt-4 flex items-center justify-between">
@@ -184,29 +188,50 @@ export function RoadmapDetailView({ roadmap, onUpdateNodeStatus }: RoadmapDetail
     return edges;
   }, [roadmap.nodes, roadmap.edges]);
 
+  const progress = calculateProgress();
+
   return (
-    <div className="h-[calc(100vh-8rem)] flex flex-col">
-      <div className="flex items-center justify-between mb-6 px-4 gap-4">
+    <div className="h-full flex flex-col">
+      <div className="mb-10 px-4">
         <Link
           to="/"
-          className="text-sm font-bold text-zinc-500 hover:text-emerald-700 transition-colors shrink-0"
+          className="text-zinc-400 hover:text-zinc-900 transition-colors mb-6 group flex items-center gap-2"
         >
-          ← 一覧へ
+          <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+          <span className="text-xs font-bold uppercase tracking-widest">
+            ロードマップ一覧に戻る
+          </span>
         </Link>
-        <div className="flex flex-col gap-4 flex-1 min-w-0">
-          <div className="flex items-center gap-4 flex-wrap">
-            <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">{roadmap.title}</h1>
-            <div className="flex items-center gap-2 px-2 py-1 bg-zinc-100 rounded-md">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-wider">
-                {calculateProgress()}% Complete
-              </span>
+
+        <div className="flex items-end justify-between gap-6 flex-wrap">
+          <div className="space-y-2">
+            <h1 className="text-4xl font-bold text-zinc-900 tracking-tight leading-none">
+              {roadmap.title}
+            </h1>
+            <p className="text-zinc-400 text-sm font-medium">
+              {roadmap.nodes.length} ステップの学習プラン
+            </p>
+          </div>
+
+          <div className="flex flex-col items-end gap-3">
+            <div className="text-right">
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">
+                進捗率
+              </p>
+              <p className="text-xl font-bold text-zinc-900 leading-none">{progress}%</p>
+            </div>
+            <div className="w-48 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+                className="h-full bg-emerald-500 rounded-full"
+              />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 bg-white border border-zinc-100 rounded-[2rem] overflow-hidden shadow-inner relative group min-h-[400px]">
+      <div className="flex-1 min-h-[600px] bg-white border border-zinc-100 rounded-[2.5rem] overflow-hidden shadow-inner relative group">
         <ReactFlow
           nodes={flowNodes}
           edges={flowEdges}
@@ -216,6 +241,7 @@ export function RoadmapDetailView({ roadmap, onUpdateNodeStatus }: RoadmapDetail
           minZoom={0.5}
           maxZoom={1.5}
           className="bg-[#fafafa]"
+          proOptions={{ hideAttribution: true }}
         >
           <Background color="#e4e4e7" gap={24} size={1} />
           <Controls
