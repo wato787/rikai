@@ -3,9 +3,9 @@
   "type": "module",
   "scripts": {
     "dev": "dotenvx run -- bun --hot src/index.ts",
-    "db:generate": "drizzle-kit generate",
+    "db:generate": "dotenvx run -- drizzle-kit generate",
     "db:migrate": "bunx wrangler d1 migrations apply rikai_db --local",
-    "db:studio": "drizzle-kit studio",
+    "db:studio": "dotenvx run -- drizzle-kit studio",
     "build": "bun build src/index.ts --outdir=dist --target=bun",
     "start": "dotenvx run -- bun dist/index.js",
     "lint": "oxlint -c ../.oxlintrc.json --import-plugin --node-plugin --promise-plugin --tsconfig ./tsconfig.json ./src",

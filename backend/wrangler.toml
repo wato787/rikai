@@ -2,6 +2,7 @@
 name = "rikai-api"
 main = "src/index.ts"
 compatibility_date = "2026-01-03"
+compatibility_flags = [ "nodejs_compat" ]
 
 # 1. データベース設定
 [[d1_databases]]
