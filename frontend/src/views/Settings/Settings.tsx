@@ -107,12 +107,6 @@ export function Settings() {
             </div>
           </div>
         </section>
-
-        <footer className="pt-12 border-t border-zinc-100 flex justify-end">
-          <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">
-            Rikai v1.0.0-alpha
-          </p>
-        </footer>
       </div>
     </div>
   );
