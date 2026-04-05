@@ -139,27 +139,25 @@ export function RoadmapDetail({ roadmap, onUpdateNodeStatus }: RoadmapDetailProp
 
   const flowEdges: Edge[] = useMemo(() => {
     if (roadmap.edges.length > 0) {
-      return roadmap.edges.map((edge) => ({
-        ...edge,
-        type: ConnectionLineType.SmoothStep,
-        animated: roadmap.nodes.find((n) => n.id === edge.source)?.status === "in_progress",
-        style: {
-          stroke:
-            roadmap.nodes.find((n) => n.id === edge.source)?.status === "completed"
-              ? "#10b981"
-              : "#e4e4e7",
-          strokeWidth: 2,
-        },
-        markerEnd: {
-          type: MarkerType.ArrowClosed,
-          color:
-            roadmap.nodes.find((n) => n.id === edge.source)?.status === "completed"
-              ? "#10b981"
-              : "#e4e4e7",
-          width: 15,
-          height: 15,
-        },
-      }));
+      const nodeById = new Map(roadmap.nodes.map((n) => [n.id, n]));
+      return roadmap.edges.map((edge) => {
+        const sourceStatus = nodeById.get(edge.source)?.status;
+        return {
+          ...edge,
+          type: ConnectionLineType.SmoothStep,
+          animated: sourceStatus === "in_progress",
+          style: {
+            stroke: sourceStatus === "completed" ? "#10b981" : "#e4e4e7",
+            strokeWidth: 2,
+          },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            color: sourceStatus === "completed" ? "#10b981" : "#e4e4e7",
+            width: 15,
+            height: 15,
+          },
+        };
+      });
     }
 
     const edges: Edge[] = [];

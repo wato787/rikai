@@ -1,4 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useCallback } from "react";
+import type { RoadmapNode } from "@/types/roadmap";
 import { RoadmapDetail, useRoadmapMock } from "@/views/Roadmap";
 
 export const Route = createFileRoute("/roadmap/$roadmapId")({
@@ -9,6 +11,13 @@ function RoadmapDetailPage() {
   const { roadmapId } = Route.useParams();
   const { roadmaps, updateNodeStatus } = useRoadmapMock();
   const roadmap = roadmaps.find((r) => r.id === roadmapId);
+
+  const handleUpdateNodeStatus = useCallback(
+    (nodeId: string, status: RoadmapNode["status"]) => {
+      updateNodeStatus(roadmapId, nodeId, status);
+    },
+    [roadmapId, updateNodeStatus],
+  );
 
   if (!roadmap) {
     return (
@@ -21,10 +30,5 @@ function RoadmapDetailPage() {
     );
   }
 
-  return (
-    <RoadmapDetail
-      roadmap={roadmap}
-      onUpdateNodeStatus={(nodeId, status) => updateNodeStatus(roadmap.id, nodeId, status)}
-    />
-  );
+  return <RoadmapDetail roadmap={roadmap} onUpdateNodeStatus={handleUpdateNodeStatus} />;
 }
