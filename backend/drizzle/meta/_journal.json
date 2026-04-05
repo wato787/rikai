@@ -15,6 +15,13 @@
       "when": 1775346512831,
       "tag": "0001_concerned_scorpion",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1775347030339,
+      "tag": "0002_spotty_mongoose",
+      "breakpoints": true
     }
   ]
 }
