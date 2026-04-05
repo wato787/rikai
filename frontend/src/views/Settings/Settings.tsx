@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CreditCard, ChevronRight, LogOut, Shield, Trash2, User } from "lucide-react";
+import { CreditCard, ChevronRight, Shield, Trash2, User } from "lucide-react";
 
 export function Settings() {
   const [name, setName] = useState("表示名（モック）");
@@ -108,14 +108,7 @@ export function Settings() {
           </div>
         </section>
 
-        <footer className="pt-12 border-t border-zinc-100 flex items-center justify-between">
-          <button
-            type="button"
-            className="flex items-center gap-2 text-zinc-400 hover:text-red-500 transition-colors font-bold text-sm"
-          >
-            <LogOut size={18} />
-            ログアウト
-          </button>
+        <footer className="pt-12 border-t border-zinc-100 flex justify-end">
           <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">
             Rikai v1.0.0-alpha
           </p>

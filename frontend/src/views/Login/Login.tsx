@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Lock, Mail } from "lucide-react";
@@ -5,7 +6,10 @@ import { motion } from "motion/react";
 
 import { authClient } from "@/lib/auth-client";
 
+import { sessionQueryKey } from "./queries";
+
 export function Login() {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,6 +29,7 @@ export function Login() {
         setError(signErr.message ?? "ログインに失敗しました。");
         return;
       }
+      await queryClient.invalidateQueries({ queryKey: sessionQueryKey });
       await navigate({ to: "/" });
     } finally {
       setSubmitting(false);

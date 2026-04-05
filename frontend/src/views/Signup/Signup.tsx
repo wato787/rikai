@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, CheckCircle2, Lock, Mail, User } from "lucide-react";
@@ -5,7 +6,10 @@ import { motion } from "motion/react";
 
 import { authClient } from "@/lib/auth-client";
 
+import { sessionQueryKey } from "./queries";
+
 export function Signup() {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -32,6 +36,7 @@ export function Signup() {
         setError(signErr.message ?? "登録に失敗しました。");
         return;
       }
+      await queryClient.invalidateQueries({ queryKey: sessionQueryKey });
       await navigate({ to: "/" });
     } finally {
       setSubmitting(false);
