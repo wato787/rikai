@@ -122,7 +122,10 @@ app.post("/", async (c) => {
     );
   }
 
-  const payload = await generateRoadmapWithGemini(apiKey, topic);
+  const geminiModel = process.env.GEMINI_MODEL ?? c.env.GEMINI_MODEL;
+  const payload = await generateRoadmapWithGemini(apiKey, topic, {
+    model: geminiModel,
+  });
   if (!payload || payload.nodes.length === 0) {
     return jsonError(
       c,
