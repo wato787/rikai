@@ -1,5 +1,14 @@
 export type RoadmapNodeStatus = "not_started" | "in_progress" | "completed";
 
+/** 一覧 API（GET /roadmaps）からマッピングしたサマリ */
+export interface RoadmapSummary {
+  id: string;
+  title: string;
+  createdAt: string;
+  totalNodes: number;
+  completedNodes: number;
+}
+
 export interface RoadmapNode {
   id: string;
   label: string;
