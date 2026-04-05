@@ -1,40 +1,25 @@
-import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useState, type FormEvent } from "react";
+import { Link } from "@tanstack/react-router";
 import { ArrowRight, Lock, Mail } from "lucide-react";
 import { motion } from "motion/react";
 
-import { authClient } from "@/lib/auth-client";
+import { useLogin } from "./useLogin";
 
-import { sessionQueryKey } from "./queries";
-
-export function Login() {
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
+export const Login = () => {
+  const { login, isPending, error } = useLogin();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setSubmitting(true);
     try {
-      const { error: signErr } = await authClient.signIn.email({
-        email,
-        password,
-      });
-      if (signErr) {
-        setError(signErr.message ?? "ログインに失敗しました。");
-        return;
-      }
-      await queryClient.invalidateQueries({ queryKey: sessionQueryKey });
-      await navigate({ to: "/" });
-    } finally {
-      setSubmitting(false);
+      await login({ email, password });
+    } catch {
+      /* 失敗時は mutation.error に載る */
     }
-  }
+  };
+
+  const message = error instanceof Error ? error.message : null;
 
   return (
     <div className="min-h-screen bg-[#fafaf9] flex flex-col items-center justify-center p-4">
@@ -58,12 +43,12 @@ export function Login() {
             </p>
           </header>
 
-          {error ? (
+          {message ? (
             <p
               className="mb-6 text-sm text-red-600 bg-red-50 border border-red-100 rounded-2xl px-4 py-3"
               role="alert"
             >
-              {error}
+              {message}
             </p>
           ) : null}
 
@@ -130,10 +115,10 @@ export function Login() {
 
             <button
               type="submit"
-              disabled={submitting}
+              disabled={isPending}
               className="w-full py-4 bg-zinc-900 text-white text-sm font-bold rounded-2xl hover:bg-zinc-800 transition-all shadow-lg shadow-zinc-900/10 flex items-center justify-center gap-2 group disabled:opacity-60 disabled:pointer-events-none"
             >
-              {submitting ? "ログイン中…" : "ログイン"}
+              {isPending ? "ログイン中…" : "ログイン"}
               <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
             </button>
           </form>
@@ -153,4 +138,4 @@ export function Login() {
       </motion.div>
     </div>
   );
-}
+};
