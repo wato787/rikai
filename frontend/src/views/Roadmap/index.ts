@@ -1,4 +1,6 @@
-export { RoadmapList } from "./List";
-export { RoadmapDetail, type RoadmapDetailProps } from "./Detail";
-export { CreateRoadmapModal } from "./CreateRoadmapModal";
-export * from "./Mock";
+export { RoadmapList, type RoadmapListProps } from "./List/List";
+export { RoadmapDetail, type RoadmapDetailProps } from "./Detail/Detail";
+export {
+  CreateRoadmapModal,
+  type CreateRoadmapModalProps,
+} from "./CreateRoadmapModal/CreateRoadmapModal";

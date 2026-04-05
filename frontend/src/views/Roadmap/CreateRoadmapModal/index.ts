@@ -1,1 +1,1 @@
-export { CreateRoadmapModal } from "./CreateRoadmapModal";
+export { CreateRoadmapModal, type CreateRoadmapModalProps } from "./CreateRoadmapModal";

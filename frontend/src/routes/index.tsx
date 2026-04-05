@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RoadmapList } from "@/views/Roadmap";
-import { roadmapsListQueryOptions } from "@/views/Roadmap/List/queries";
+import { useToggle } from "@/hooks/useToggle";
+import { CreateRoadmapModal } from "../views/Roadmap/CreateRoadmapModal/CreateRoadmapModal";
+import { RoadmapList } from "../views/Roadmap/List/List";
+import { roadmapsListQueryOptions } from "../views/Roadmap/List/queries";
 
 const IndexPending = () => (
   <div className="py-16 text-center text-zinc-500 font-medium">読み込み中…</div>
@@ -14,5 +16,12 @@ export const Route = createFileRoute("/")({
 });
 
 function IndexPage() {
-  return <RoadmapList />;
+  const toggle = useToggle(false);
+
+  return (
+    <>
+      <RoadmapList onOpenCreate={toggle.handleOpen} />
+      <CreateRoadmapModal toggle={toggle} />
+    </>
+  );
 }

@@ -24,8 +24,10 @@ const mapListRow = (r: ApiRoadmapListRow): RoadmapSummary => ({
   completedNodes: r.completedNodes,
 });
 
+export const roadmapsListQueryKey = ["roadmaps", "list"] as const;
+
 export const roadmapsListQueryOptions = queryOptions({
-  queryKey: ["roadmaps", "list"] as const,
+  queryKey: roadmapsListQueryKey,
   queryFn: () => apiGet<ApiRoadmapsListResponse>("/roadmaps"),
   select: (data): RoadmapSummary[] => data.roadmaps.map(mapListRow),
 });

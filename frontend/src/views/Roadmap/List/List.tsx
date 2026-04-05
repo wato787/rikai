@@ -4,13 +4,14 @@ import { Plus } from "lucide-react";
 import { motion } from "motion/react";
 import type { RoadmapSummary } from "@/types/roadmap";
 
-import { useRoadmapMock } from "../Mock";
 import { roadmapsListQueryOptions } from "./queries";
 
-/** 一覧データは GET /roadmaps。作成モーダルは既存の Mock 連携のまま。 */
-export const RoadmapList = () => {
+export type RoadmapListProps = {
+  onOpenCreate: () => void;
+};
+
+export function RoadmapList({ onOpenCreate }: RoadmapListProps) {
   const navigate = useNavigate();
-  const { openCreateModal } = useRoadmapMock();
   const { data: roadmaps } = useSuspenseQuery(roadmapsListQueryOptions);
 
   const calculateProgress = (r: RoadmapSummary) => {
@@ -29,7 +30,7 @@ export const RoadmapList = () => {
         </div>
         <button
           type="button"
-          onClick={openCreateModal}
+          onClick={onOpenCreate}
           className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-bold text-sm hover:bg-emerald-700 transition-all active:scale-95 shadow-lg shadow-emerald-600/20"
         >
           <Plus size={18} />
@@ -55,7 +56,7 @@ export const RoadmapList = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
                 onClick={() => {
-                  void navigate({ to: "/roadmap/$roadmapId", params: { roadmapId: roadmap.id } });
+                  navigate({ to: "/roadmap/$roadmapId", params: { roadmapId: roadmap.id } });
                 }}
                 className="group w-full text-left bg-white border border-zinc-100 p-8 flex items-center justify-between hover:border-emerald-200 hover:shadow-xl hover:shadow-emerald-900/5 transition-all cursor-pointer rounded-[2rem]"
               >
@@ -89,4 +90,4 @@ export const RoadmapList = () => {
       </div>
     </div>
   );
-};
+}
