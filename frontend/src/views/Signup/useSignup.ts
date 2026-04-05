@@ -5,20 +5,21 @@ import { authClient } from "@/lib/auth-client";
 
 import { sessionQueryKey } from "./queries";
 
-export type LoginCredentials = {
+export type SignupCredentials = {
+  name: string;
   email: string;
   password: string;
 };
 
-export const useLogin = () => {
+export const useSignup = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
   const mutation = useMutation({
-    mutationFn: async ({ email, password }: LoginCredentials) => {
-      const { error } = await authClient.signIn.email({ email, password });
+    mutationFn: async ({ name, email, password }: SignupCredentials) => {
+      const { error } = await authClient.signUp.email({ name, email, password });
       if (error) {
-        throw new Error(error.message ?? "ログインに失敗しました。");
+        throw new Error(error.message ?? "登録に失敗しました。");
       }
     },
     onSuccess: async () => {
@@ -28,7 +29,7 @@ export const useLogin = () => {
   });
 
   return {
-    login: mutation.mutate,
+    signup: mutation.mutate,
     isPending: mutation.isPending,
     error: mutation.error,
   };

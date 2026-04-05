@@ -10,13 +10,9 @@ export const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    try {
-      await login({ email, password });
-    } catch {
-      /* 失敗時は mutation.error に載る */
-    }
+    login({ email, password });
   };
 
   const message = error instanceof Error ? error.message : null;
@@ -52,7 +48,7 @@ export const Login = () => {
             </p>
           ) : null}
 
-          <form className="space-y-6" onSubmit={(e) => void handleSubmit(e)}>
+          <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-2">
               <label
                 htmlFor="login-email"
