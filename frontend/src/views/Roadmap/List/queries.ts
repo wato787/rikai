@@ -12,7 +12,7 @@ type ApiRoadmapListRow = {
   createdAt: number | string;
 };
 
-type ApiRoadmapsListResponse = {
+export type ApiRoadmapsListResponse = {
   roadmaps: ApiRoadmapListRow[];
 };
 
@@ -24,12 +24,8 @@ const mapListRow = (r: ApiRoadmapListRow): RoadmapSummary => ({
   completedNodes: r.completedNodes,
 });
 
-export async function fetchRoadmapsList(): Promise<RoadmapSummary[]> {
-  const res = await apiGet<ApiRoadmapsListResponse>("/roadmaps");
-  return res.roadmaps.map(mapListRow);
-}
-
 export const roadmapsListQueryOptions = queryOptions({
   queryKey: ["roadmaps", "list"] as const,
-  queryFn: fetchRoadmapsList,
+  queryFn: () => apiGet<ApiRoadmapsListResponse>("/roadmaps"),
+  select: (data): RoadmapSummary[] => data.roadmaps.map(mapListRow),
 });
