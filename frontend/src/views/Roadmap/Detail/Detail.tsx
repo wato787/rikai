@@ -11,7 +11,7 @@ import {
   Position,
   ReactFlow,
 } from "reactflow";
-import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Trash2 } from "lucide-react";
 import { motion } from "motion/react";
 import { Link } from "@tanstack/react-router";
 import type { Roadmap, RoadmapNode } from "@/types/roadmap";
@@ -105,9 +105,16 @@ function RoadmapNodeComponent({ data }: NodeProps) {
 export type RoadmapDetailProps = {
   roadmap: Roadmap;
   onUpdateNodeStatus: (nodeId: string, status: RoadmapNode["status"]) => void;
+  onDeleteRoadmap?: () => void;
+  isDeletePending?: boolean;
 };
 
-export function RoadmapDetail({ roadmap, onUpdateNodeStatus }: RoadmapDetailProps) {
+export function RoadmapDetail({
+  roadmap,
+  onUpdateNodeStatus,
+  onDeleteRoadmap,
+  isDeletePending = false,
+}: RoadmapDetailProps) {
   const nodeTypes = useMemo(() => ({ roadmapNode: RoadmapNodeComponent }), []);
 
   const calculateProgress = () => {
@@ -206,9 +213,22 @@ export function RoadmapDetail({ roadmap, onUpdateNodeStatus }: RoadmapDetailProp
             <h1 className="text-4xl font-bold text-zinc-900 tracking-tight leading-none">
               {roadmap.title}
             </h1>
-            <p className="text-zinc-400 text-sm font-medium">
-              {roadmap.nodes.length} ステップの学習プラン
-            </p>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <p className="text-zinc-400 text-sm font-medium">
+                {roadmap.nodes.length} ステップの学習プラン
+              </p>
+              {onDeleteRoadmap ? (
+                <button
+                  type="button"
+                  onClick={onDeleteRoadmap}
+                  disabled={isDeletePending}
+                  className="inline-flex items-center gap-1.5 text-sm font-bold text-red-600 hover:text-red-700 disabled:opacity-40 transition-colors"
+                >
+                  <Trash2 size={16} strokeWidth={2} aria-hidden />
+                  削除
+                </button>
+              ) : null}
+            </div>
           </div>
 
           <div className="flex flex-col items-end gap-3">
