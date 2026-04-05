@@ -20,8 +20,13 @@ function RootComponent() {
 
 function AppShell() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isAuthPage = pathname === "/login" || pathname === "/signup";
   const isRoadmapsSection = pathname === "/" || pathname.startsWith("/roadmap/");
   const isSettings = pathname === "/settings";
+
+  if (isAuthPage) {
+    return <Outlet />;
+  }
 
   return (
     <div className="min-h-screen bg-[#fafaf9] font-sans text-zinc-800 selection:bg-emerald-100 selection:text-emerald-900 flex">

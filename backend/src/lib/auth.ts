@@ -9,7 +9,7 @@ import { subscriptions } from "../db/schemas/subscription";
 import type { CloudflareBindings } from "../types/hono-env";
 
 function trustedOriginsFromEnv(frontendUrl: string | undefined): string[] {
-  const origins = new Set<string>(["http://localhost:5173"]);
+  const origins = new Set<string>(["http://localhost:5173", "http://localhost:3000"]);
   if (frontendUrl) origins.add(frontendUrl.replace(/\/$/, ""));
   return [...origins];
 }

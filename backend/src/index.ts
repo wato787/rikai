@@ -11,7 +11,7 @@ const app = new Hono<AppEnv>();
 
 app.use("*", async (c, next) => {
   const fe = (process.env.FRONTEND_URL ?? c.env.FRONTEND_URL ?? "").replace(/\/$/, "");
-  const allow = new Set<string>(["http://localhost:5173"]);
+  const allow = new Set<string>(["http://localhost:5173", "http://localhost:3000"]);
   if (fe) allow.add(fe);
 
   return cors({
