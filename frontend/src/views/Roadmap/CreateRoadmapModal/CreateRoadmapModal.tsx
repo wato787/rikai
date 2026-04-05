@@ -1,45 +1,40 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { ArrowRight, Loader2, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import type { Roadmap } from "@/types/roadmap";
 
 import { mockGenerateRoadmap, useRoadmapMock } from "@/views/Roadmap/Mock";
 
-export function CreateRoadmapModal() {
+export const CreateRoadmapModal = () => {
   const { isCreateModalOpen, closeCreateModal, addRoadmap } = useRoadmapMock();
   const [title, setTitle] = useState("");
   const [topic, setTopic] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [isPending, setIsPending] = useState(false);
+
+  useEffect(() => {
+    if (!isCreateModalOpen) {
+      setTitle("");
+      setTopic("");
+    }
+  }, [isCreateModalOpen]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!topic.trim() || isGenerating) return;
-
-    setIsGenerating(true);
-    setError(null);
-
+    if (!topic.trim() || isPending) return;
+    const topicForGen = title.trim() ? `${title.trim()} — ${topic.trim()}` : topic.trim();
+    setIsPending(true);
     try {
-      const result = await mockGenerateRoadmap(topic);
-
-      const newRoadmap: Roadmap = {
+      const generated = await mockGenerateRoadmap(topicForGen);
+      addRoadmap({
         id: crypto.randomUUID(),
-        title: title.trim() || result.title || topic,
-        nodes: result.nodes,
-        edges: result.edges,
+        title: generated.title,
+        nodes: generated.nodes,
+        edges: generated.edges,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-      };
-
-      addRoadmap(newRoadmap);
+      });
       closeCreateModal();
-      setTitle("");
-      setTopic("");
-    } catch (err) {
-      console.error(err);
-      setError("プランの策定に失敗しました。内容を具体的にして再度お試しください。");
     } finally {
-      setIsGenerating(false);
+      setIsPending(false);
     }
   };
 
@@ -83,7 +78,7 @@ export function CreateRoadmapModal() {
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-8">
+              <form onSubmit={(e) => void handleSubmit(e)} className="space-y-8">
                 <div className="space-y-6">
                   <div className="space-y-2">
                     <label
@@ -97,7 +92,7 @@ export function CreateRoadmapModal() {
                       type="text"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      placeholder="ロードマップの名称（任意）"
+                      placeholder="ロードマップの名称（任意・学習目標と併せて送信されます）"
                       className="w-full px-6 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl text-zinc-900 placeholder:text-zinc-300 focus:outline-none focus:border-zinc-900 transition-all font-medium"
                     />
                   </div>
@@ -117,15 +112,14 @@ export function CreateRoadmapModal() {
                       className="w-full h-32 px-6 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl text-zinc-900 placeholder:text-zinc-300 focus:outline-none focus:border-zinc-900 transition-all resize-none font-medium leading-relaxed"
                     />
                   </div>
-                  {error ? <p className="text-xs font-bold text-red-500 ml-1">{error}</p> : null}
                 </div>
 
                 <button
                   type="submit"
-                  disabled={!topic.trim() || isGenerating}
+                  disabled={!topic.trim() || isPending}
                   className="w-full flex items-center justify-center gap-3 py-5 bg-zinc-900 text-white rounded-2xl font-bold hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xl shadow-zinc-900/20 active:scale-[0.98]"
                 >
-                  {isGenerating ? (
+                  {isPending ? (
                     <>
                       <Loader2 size={20} className="animate-spin" />
                       <span className="tracking-tight">構築中...</span>
@@ -144,4 +138,4 @@ export function CreateRoadmapModal() {
       ) : null}
     </AnimatePresence>
   );
-}
+};

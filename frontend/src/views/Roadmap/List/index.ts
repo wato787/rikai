@@ -1,1 +1,1 @@
-export { RoadmapList, type RoadmapListProps } from "./List";
+export { RoadmapList } from "./List";

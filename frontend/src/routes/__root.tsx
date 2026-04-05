@@ -1,10 +1,11 @@
-import { createRootRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
+import type { QueryClient } from "@tanstack/react-query";
+import { createRootRouteWithContext, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { LayoutGrid, Settings as SettingsIcon } from "lucide-react";
 import { CreateRoadmapModal, RoadmapMockProvider } from "@/views/Roadmap";
 import "@/index.css";
 
-export const Route = createRootRoute({
+export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   component: RootComponent,
 });
 

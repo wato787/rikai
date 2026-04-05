@@ -1,19 +1,21 @@
-import { Plus, Trash2 } from "lucide-react";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import { Plus } from "lucide-react";
 import { motion } from "motion/react";
-import type { Roadmap } from "@/types/roadmap";
+import type { RoadmapSummary } from "@/types/roadmap";
 
-export type RoadmapListProps = {
-  roadmaps: Roadmap[];
-  onSelect: (roadmap: Roadmap) => void;
-  onDelete: (id: string) => void;
-  onCreateClick: () => void;
-};
+import { useRoadmapMock } from "../Mock";
+import { roadmapsListQueryOptions } from "./queries";
 
-export function RoadmapList({ roadmaps, onSelect, onDelete, onCreateClick }: RoadmapListProps) {
-  const calculateProgress = (roadmap: Roadmap) => {
-    if (roadmap.nodes.length === 0) return 0;
-    const completed = roadmap.nodes.filter((n) => n.status === "completed").length;
-    return Math.round((completed / roadmap.nodes.length) * 100);
+/** 一覧データは GET /roadmaps。作成モーダルは既存の Mock 連携のまま。 */
+export const RoadmapList = () => {
+  const navigate = useNavigate();
+  const { openCreateModal } = useRoadmapMock();
+  const { data: roadmaps } = useSuspenseQuery(roadmapsListQueryOptions);
+
+  const calculateProgress = (r: RoadmapSummary) => {
+    if (r.totalNodes === 0) return 0;
+    return Math.round((r.completedNodes / r.totalNodes) * 100);
   };
 
   return (
@@ -27,7 +29,7 @@ export function RoadmapList({ roadmaps, onSelect, onDelete, onCreateClick }: Roa
         </div>
         <button
           type="button"
-          onClick={onCreateClick}
+          onClick={openCreateModal}
           className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-bold text-sm hover:bg-emerald-700 transition-all active:scale-95 shadow-lg shadow-emerald-600/20"
         >
           <Plus size={18} />
@@ -52,7 +54,9 @@ export function RoadmapList({ roadmaps, onSelect, onDelete, onCreateClick }: Roa
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                onClick={() => onSelect(roadmap)}
+                onClick={() => {
+                  void navigate({ to: "/roadmap/$roadmapId", params: { roadmapId: roadmap.id } });
+                }}
                 className="group w-full text-left bg-white border border-zinc-100 p-8 flex items-center justify-between hover:border-emerald-200 hover:shadow-xl hover:shadow-emerald-900/5 transition-all cursor-pointer rounded-[2rem]"
               >
                 <div className="flex-1 min-w-0">
@@ -75,21 +79,8 @@ export function RoadmapList({ roadmaps, onSelect, onDelete, onCreateClick }: Roa
                   </h3>
                 </div>
 
-                <div className="flex items-center gap-6">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDelete(roadmap.id);
-                    }}
-                    className="p-2 text-zinc-200 hover:text-red-400 transition-colors"
-                    aria-label="削除"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                  <div className="w-14 h-14 bg-zinc-50 rounded-2xl flex items-center justify-center text-zinc-400 group-hover:bg-emerald-600 group-hover:text-white group-hover:shadow-lg group-hover:shadow-emerald-600/30 transition-all duration-300 font-bold text-xs">
-                    開く
-                  </div>
+                <div className="w-14 h-14 bg-zinc-50 rounded-2xl flex items-center justify-center text-zinc-400 group-hover:bg-emerald-600 group-hover:text-white group-hover:shadow-lg group-hover:shadow-emerald-600/30 transition-all duration-300 font-bold text-xs">
+                  開く
                 </div>
               </motion.button>
             ))}
@@ -98,4 +89,4 @@ export function RoadmapList({ roadmaps, onSelect, onDelete, onCreateClick }: Roa
       </div>
     </div>
   );
-}
+};

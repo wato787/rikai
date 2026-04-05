@@ -9,10 +9,13 @@ import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 import { createAppQueryClient } from "./lib/query-client";
 
+const queryClient = createAppQueryClient();
+
 const router = createRouter({
   routeTree,
   defaultPreload: "intent",
   scrollRestoration: true,
+  context: { queryClient },
 });
 
 declare module "@tanstack/react-router" {
@@ -20,8 +23,6 @@ declare module "@tanstack/react-router" {
     router: typeof router;
   }
 }
-
-const queryClient = createAppQueryClient();
 
 const elem = document.getElementById("root")!;
 const app = (
