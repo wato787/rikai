@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { CreditCard, ChevronRight, LogOut, Shield, Trash2, User } from "lucide-react";
 
-export function SettingsPage() {
+export function Settings() {
   const [name, setName] = useState("表示名（モック）");
   const [email, setEmail] = useState("user@example.com");
 

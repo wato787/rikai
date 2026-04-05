@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 
 import { authClient } from "@/lib/auth-client";
 
-export function LoginPage() {
+export function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

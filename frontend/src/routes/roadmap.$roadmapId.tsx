@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { RoadmapDetailView } from "@/features/roadmap/roadmap-detail";
-import { useRoadmapMock } from "@/features/roadmap/roadmap-mock-context";
+import { RoadmapDetail, useRoadmapMock } from "@/views/Roadmap";
 
 export const Route = createFileRoute("/roadmap/$roadmapId")({
   component: RoadmapDetailPage,
@@ -23,7 +22,7 @@ function RoadmapDetailPage() {
   }
 
   return (
-    <RoadmapDetailView
+    <RoadmapDetail
       roadmap={roadmap}
       onUpdateNodeStatus={(nodeId, status) => updateNodeStatus(roadmap.id, nodeId, status)}
     />

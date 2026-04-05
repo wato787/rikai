@@ -107,7 +107,7 @@ export type RoadmapDetailProps = {
   onUpdateNodeStatus: (nodeId: string, status: RoadmapNode["status"]) => void;
 };
 
-export function RoadmapDetailView({ roadmap, onUpdateNodeStatus }: RoadmapDetailProps) {
+export function RoadmapDetail({ roadmap, onUpdateNodeStatus }: RoadmapDetailProps) {
   const nodeTypes = useMemo(() => ({ roadmapNode: RoadmapNodeComponent }), []);
 
   const calculateProgress = () => {

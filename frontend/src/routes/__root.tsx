@@ -1,8 +1,7 @@
 import { createRootRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { LayoutGrid, Settings as SettingsIcon } from "lucide-react";
-import { RoadmapMockProvider } from "@/features/roadmap/roadmap-mock-context";
-import { CreateRoadmapModal } from "@/features/roadmap/create-roadmap-modal";
+import { CreateRoadmapModal, RoadmapMockProvider } from "@/views/Roadmap";
 import "@/index.css";
 
 export const Route = createRootRoute({

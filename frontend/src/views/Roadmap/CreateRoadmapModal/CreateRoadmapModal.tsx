@@ -2,8 +2,8 @@ import { useState, type FormEvent } from "react";
 import { ArrowRight, Loader2, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import type { Roadmap } from "@/types/roadmap";
-import { mockGenerateRoadmap } from "@/features/roadmap/mock-generate-roadmap";
-import { useRoadmapMock } from "@/features/roadmap/roadmap-mock-context";
+
+import { mockGenerateRoadmap, useRoadmapMock } from "@/views/Roadmap/Mock";
 
 export function CreateRoadmapModal() {
   const { isCreateModalOpen, closeCreateModal, addRoadmap } = useRoadmapMock();

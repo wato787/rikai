@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import type { Roadmap, RoadmapNode } from "@/types/roadmap";
-import { INITIAL_MOCK_ROADMAPS } from "@/features/roadmap/mock-data";
+
+import { INITIAL_MOCK_ROADMAPS } from "./mock-data";
 
 export type RoadmapMockContextValue = {
   roadmaps: Roadmap[];

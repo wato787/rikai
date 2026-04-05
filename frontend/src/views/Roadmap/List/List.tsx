@@ -2,14 +2,14 @@ import { Plus, Trash2 } from "lucide-react";
 import { motion } from "motion/react";
 import type { Roadmap } from "@/types/roadmap";
 
-export type RoadmapsListProps = {
+export type RoadmapListProps = {
   roadmaps: Roadmap[];
   onSelect: (roadmap: Roadmap) => void;
   onDelete: (id: string) => void;
   onCreateClick: () => void;
 };
 
-export function RoadmapsList({ roadmaps, onSelect, onDelete, onCreateClick }: RoadmapsListProps) {
+export function RoadmapList({ roadmaps, onSelect, onDelete, onCreateClick }: RoadmapListProps) {
   const calculateProgress = (roadmap: Roadmap) => {
     if (roadmap.nodes.length === 0) return 0;
     const completed = roadmap.nodes.filter((n) => n.status === "completed").length;
