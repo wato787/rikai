@@ -71,6 +71,19 @@ function RoadmapDetailPage() {
     [patchMutation],
   );
 
+  const handleUpdateNodePosition = useCallback(
+    (nodeId: string, x: number, y: number) => {
+      const node = roadmap.nodes.find((n) => n.id === nodeId);
+      const px = node?.position?.x;
+      const py = node?.position?.y;
+      const same =
+        px !== undefined && py !== undefined && Math.abs(px - x) < 0.5 && Math.abs(py - y) < 0.5;
+      if (same) return;
+      patchMutation.mutate({ nodeId, positionX: x, positionY: y });
+    },
+    [patchMutation, roadmap.nodes],
+  );
+
   const handleDeleteRoadmap = useCallback(() => {
     const ok = window.confirm(`「${roadmap.title}」を削除しますか？この操作は取り消せません。`);
     if (!ok) return;
@@ -82,6 +95,7 @@ function RoadmapDetailPage() {
       roadmap={roadmap}
       onUpdateNodeStatus={handleUpdateNodeStatus}
       onUpdateNodeContent={handleUpdateNodeContent}
+      onUpdateNodePosition={handleUpdateNodePosition}
       onDeleteRoadmap={handleDeleteRoadmap}
       isDeletePending={deleteMutation.isPending}
     />

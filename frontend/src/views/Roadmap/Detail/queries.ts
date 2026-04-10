@@ -19,6 +19,8 @@ export type RoadmapDetailJson = {
     description: string;
     status: RoadmapNodeStatus;
     orderIndex: number;
+    positionX?: number | null;
+    positionY?: number | null;
   }>;
   edges: Array<{ id: string; sourceId: string; targetId: string }>;
 };
@@ -35,14 +37,19 @@ function mapDetailJsonToRoadmap(d: RoadmapDetailJson): Roadmap {
     title: d.roadmap.title,
     createdAt,
     updatedAt: createdAt,
-    nodes: sorted.map((n, idx) => ({
-      id: n.id,
-      label: n.label,
-      description: n.description,
-      status: n.status,
-      level: 0,
-      position: { x: 0, y: idx * 180 },
-    })),
+    nodes: sorted.map((n, idx) => {
+      const px = n.positionX;
+      const py = n.positionY;
+      const hasSaved = px != null && py != null && Number.isFinite(px) && Number.isFinite(py);
+      return {
+        id: n.id,
+        label: n.label,
+        description: n.description,
+        status: n.status,
+        level: 0,
+        position: hasSaved ? { x: px, y: py } : { x: 0, y: idx * 180 },
+      };
+    }),
     edges: d.edges.map((e) => ({
       id: e.id,
       source: e.sourceId,

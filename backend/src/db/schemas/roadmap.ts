@@ -1,5 +1,13 @@
 import { sql } from "drizzle-orm";
-import { check, index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import {
+  check,
+  index,
+  integer,
+  real,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 
 import { user } from "./auth";
 
@@ -29,6 +37,8 @@ export const nodes = sqliteTable(
     description: text("description").notNull().default(""),
     status: text("status").notNull().default("not_started"),
     orderIndex: integer("order_index").notNull().default(0),
+    positionX: real("position_x"),
+    positionY: real("position_y"),
     createdAt: integer("created_at", { mode: "number" }).notNull(),
     updatedAt: integer("updated_at", { mode: "number" }).notNull(),
   },

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Background,
   ConnectionLineType,
@@ -10,6 +10,8 @@ import {
   type NodeProps,
   Position,
   ReactFlow,
+  useEdgesState,
+  useNodesState,
 } from "reactflow";
 import { ArrowLeft, CheckCircle2, Trash2 } from "lucide-react";
 import { motion } from "motion/react";
@@ -114,6 +116,7 @@ export type RoadmapDetailProps = {
   roadmap: Roadmap;
   onUpdateNodeStatus: (nodeId: string, status: RoadmapNode["status"]) => void;
   onUpdateNodeContent: (nodeId: string, label: string, description: string) => Promise<void>;
+  onUpdateNodePosition: (nodeId: string, x: number, y: number) => void;
   onDeleteRoadmap?: () => void;
   isDeletePending?: boolean;
 };
@@ -122,6 +125,7 @@ export function RoadmapDetail({
   roadmap,
   onUpdateNodeStatus,
   onUpdateNodeContent,
+  onUpdateNodePosition,
   onDeleteRoadmap,
   isDeletePending = false,
 }: RoadmapDetailProps) {
@@ -208,6 +212,14 @@ export function RoadmapDetail({
     return edges;
   }, [roadmap.nodes, roadmap.edges]);
 
+  const [nodes, setNodes, onNodesChange] = useNodesState(flowNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(flowEdges);
+
+  useEffect(() => {
+    setNodes(flowNodes);
+    setEdges(flowEdges);
+  }, [flowNodes, flowEdges, setEdges, setNodes]);
+
   const progress = calculateProgress();
 
   return (
@@ -266,8 +278,15 @@ export function RoadmapDetail({
 
       <div className="flex-1 min-h-[600px] bg-white border border-zinc-100 rounded-[2.5rem] overflow-hidden shadow-inner relative group">
         <ReactFlow
-          nodes={flowNodes}
-          edges={flowEdges}
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onNodeDragStop={(_, node) => {
+            const { x, y } = node.position;
+            if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+            onUpdateNodePosition(node.id, x, y);
+          }}
           nodeTypes={nodeTypes}
           fitView
           fitViewOptions={{ padding: 0.5 }}

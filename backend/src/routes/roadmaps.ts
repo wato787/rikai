@@ -17,6 +17,12 @@ function isNodeStatus(v: unknown): v is NodeStatus {
   return typeof v === "string" && (NODE_STATUSES as readonly string[]).includes(v);
 }
 
+const POSITION_COORD_MAX = 1_000_000;
+
+function isFiniteCoord(n: unknown): n is number {
+  return typeof n === "number" && Number.isFinite(n) && Math.abs(n) <= POSITION_COORD_MAX;
+}
+
 const app = new Hono<AppEnv>();
 
 app.use("*", requireAuth);
@@ -237,6 +243,8 @@ app.get("/:id", async (c) => {
       description: n.description,
       status: n.status,
       orderIndex: n.orderIndex,
+      positionX: n.positionX ?? null,
+      positionY: n.positionY ?? null,
     })),
     edges: edgeList.map((e) => ({
       id: e.id,
@@ -264,7 +272,7 @@ app.delete("/:id", async (c) => {
   return c.body(null, 204);
 });
 
-/** PATCH /api/roadmaps/:id/nodes/:nodeId（status / label / description のいずれか1つ以上） */
+/** PATCH /api/roadmaps/:id/nodes/:nodeId（status / label / description / position のいずれか1つ以上） */
 app.patch("/:id/nodes/:nodeId", async (c) => {
   const userId = c.get("user").id;
   const roadmapId = c.req.param("id");
@@ -278,9 +286,21 @@ app.patch("/:id/nodes/:nodeId", async (c) => {
   if (!body || typeof body !== "object") {
     return jsonError(c, 400, "VALIDATION_ERROR", "リクエストボディが不正です。");
   }
-  const raw = body as { status?: unknown; label?: unknown; description?: unknown };
+  const raw = body as {
+    status?: unknown;
+    label?: unknown;
+    description?: unknown;
+    positionX?: unknown;
+    positionY?: unknown;
+  };
 
-  const updates: { status?: NodeStatus; label?: string; description?: string } = {};
+  const updates: {
+    status?: NodeStatus;
+    label?: string;
+    description?: string;
+    positionX?: number;
+    positionY?: number;
+  } = {};
 
   if (raw.status !== undefined) {
     if (!isNodeStatus(raw.status)) {
@@ -320,12 +340,30 @@ app.patch("/:id/nodes/:nodeId", async (c) => {
     updates.description = raw.description;
   }
 
+  const hasPosX = raw.positionX !== undefined;
+  const hasPosY = raw.positionY !== undefined;
+  if (hasPosX !== hasPosY) {
+    return jsonError(c, 400, "VALIDATION_ERROR", "positionX と positionY は両方指定してください。");
+  }
+  if (hasPosX) {
+    if (!isFiniteCoord(raw.positionX) || !isFiniteCoord(raw.positionY)) {
+      return jsonError(
+        c,
+        400,
+        "VALIDATION_ERROR",
+        `positionX / positionY は ±${POSITION_COORD_MAX} 以内の有限数である必要があります。`,
+      );
+    }
+    updates.positionX = raw.positionX;
+    updates.positionY = raw.positionY;
+  }
+
   if (Object.keys(updates).length === 0) {
     return jsonError(
       c,
       400,
       "VALIDATION_ERROR",
-      "status / label / description のいずれかを指定してください。",
+      "status / label / description / position（positionX と positionY のペア）のいずれかを指定してください。",
     );
   }
 
@@ -349,6 +387,8 @@ app.patch("/:id/nodes/:nodeId", async (c) => {
       label: nodes.label,
       description: nodes.description,
       status: nodes.status,
+      positionX: nodes.positionX,
+      positionY: nodes.positionY,
       updatedAt: nodes.updatedAt,
     });
 
@@ -363,6 +403,8 @@ app.patch("/:id/nodes/:nodeId", async (c) => {
       label: updated.label,
       description: updated.description,
       status: updated.status,
+      positionX: updated.positionX ?? null,
+      positionY: updated.positionY ?? null,
       updatedAt: updated.updatedAt,
     },
   });
