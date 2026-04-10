@@ -1,10 +1,34 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { createRootRouteWithContext, Link, Outlet, useRouterState } from "@tanstack/react-router";
+import {
+  createRootRouteWithContext,
+  Link,
+  Outlet,
+  redirect,
+  useRouterState,
+} from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { LayoutGrid, Settings as SettingsIcon } from "lucide-react";
+import { parseAuthPageSearch, sessionQueryOptions } from "@/lib/auth-session";
 import "@/index.css";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  beforeLoad: async ({ context, location }) => {
+    const session = await context.queryClient.ensureQueryData(sessionQueryOptions);
+    const path = location.pathname;
+    const isAuthPage = path === "/login" || path === "/signup";
+
+    if (!session && !isAuthPage) {
+      const returnTo = path === "/" ? undefined : `${path}${location.search}`;
+      const search = returnTo ? parseAuthPageSearch({ redirect: returnTo }) : {};
+      throw redirect({ to: "/login", search });
+    }
+
+    if (session && isAuthPage) {
+      throw redirect({ to: "/" });
+    }
+
+    return { session };
+  },
   component: RootComponent,
 });
 

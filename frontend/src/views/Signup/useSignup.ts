@@ -1,9 +1,10 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { getRouteApi, useRouter } from "@tanstack/react-router";
 
 import { authClient } from "@/lib/auth-client";
+import { sessionQueryKey } from "@/lib/auth-session";
 
-import { sessionQueryKey } from "./queries";
+const signupRouteApi = getRouteApi("/signup");
 
 export type SignupCredentials = {
   name: string;
@@ -13,7 +14,8 @@ export type SignupCredentials = {
 
 export const useSignup = () => {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
+  const router = useRouter();
+  const search = signupRouteApi.useSearch();
 
   const mutation = useMutation({
     mutationFn: async ({ name, email, password }: SignupCredentials) => {
@@ -24,7 +26,8 @@ export const useSignup = () => {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: sessionQueryKey });
-      await navigate({ to: "/" });
+      const target = search.redirect ?? "/";
+      await router.navigate({ href: target });
     },
   });
 

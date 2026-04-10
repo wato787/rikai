@@ -30,6 +30,13 @@ export class ApiRequestError extends Error {
   }
 }
 
+let unauthorizedHandler: (() => void) | undefined;
+
+/** API が 401 のときにセッション無効化・ログインへ誘導する（`main.tsx` で登録） */
+export function setApiUnauthorizedHandler(handler: (() => void) | undefined): void {
+  unauthorizedHandler = handler;
+}
+
 function isRecord(v: unknown): v is Record<string, unknown> {
   return v !== null && typeof v === "object";
 }
@@ -82,6 +89,9 @@ async function apiRequest<T>(method: string, path: string, init?: RequestInitJso
     const { code, message } = isJson
       ? await parseErrorBody(res)
       : { code: undefined, message: await res.text().then((t) => t || res.statusText) };
+    if (res.status === 401) {
+      unauthorizedHandler?.();
+    }
     throw new ApiRequestError(res.status, code, message);
   }
 

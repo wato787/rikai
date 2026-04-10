@@ -1,11 +1,14 @@
 import { useState, type FormEvent } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, getRouteApi } from "@tanstack/react-router";
 import { ArrowRight, CheckCircle2, Lock, Mail, User } from "lucide-react";
 import { motion } from "motion/react";
 
 import { useSignup } from "./useSignup";
 
+const signupRouteApi = getRouteApi("/signup");
+
 export const Signup = () => {
+  const search = signupRouteApi.useSearch();
   const { signup, isPending, error } = useSignup();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -165,6 +168,7 @@ export const Signup = () => {
               すでにアカウントをお持ちですか？{" "}
               <Link
                 to="/login"
+                search={search.redirect ? { redirect: search.redirect } : {}}
                 className="text-emerald-600 font-bold hover:text-emerald-700 transition-colors"
               >
                 ログイン

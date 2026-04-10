@@ -1,9 +1,10 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { getRouteApi, useRouter } from "@tanstack/react-router";
 
 import { authClient } from "@/lib/auth-client";
+import { sessionQueryKey } from "@/lib/auth-session";
 
-import { sessionQueryKey } from "./queries";
+const loginRouteApi = getRouteApi("/login");
 
 export type LoginCredentials = {
   email: string;
@@ -12,7 +13,8 @@ export type LoginCredentials = {
 
 export const useLogin = () => {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
+  const router = useRouter();
+  const search = loginRouteApi.useSearch();
 
   const mutation = useMutation({
     mutationFn: async ({ email, password }: LoginCredentials) => {
@@ -23,7 +25,8 @@ export const useLogin = () => {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: sessionQueryKey });
-      await navigate({ to: "/" });
+      const target = search.redirect ?? "/";
+      await router.navigate({ href: target });
     },
   });
 

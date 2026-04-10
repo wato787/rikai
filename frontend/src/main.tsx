@@ -7,6 +7,8 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
+import { setApiUnauthorizedHandler } from "./lib/api-client";
+import { parseAuthPageSearch, sessionQueryKey } from "./lib/auth-session";
 import { createAppQueryClient } from "./lib/query-client";
 
 const queryClient = createAppQueryClient();
@@ -16,6 +18,16 @@ const router = createRouter({
   defaultPreload: "intent",
   scrollRestoration: true,
   context: { queryClient },
+});
+
+setApiUnauthorizedHandler(() => {
+  void queryClient.invalidateQueries({ queryKey: sessionQueryKey });
+  const path = `${window.location.pathname}${window.location.search}`;
+  const search =
+    path !== "/" && path !== "/login" && path !== "/signup"
+      ? parseAuthPageSearch({ redirect: path })
+      : {};
+  void router.navigate({ to: "/login", search, replace: true });
 });
 
 declare module "@tanstack/react-router" {
