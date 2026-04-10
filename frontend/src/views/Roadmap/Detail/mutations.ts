@@ -7,19 +7,36 @@ import { roadmapsDetailQueryKey } from "./queries";
 
 export type RoadmapNodePatchVariables = {
   nodeId: string;
-  status: RoadmapNodeStatus;
+  status?: RoadmapNodeStatus;
+  label?: string;
+  description?: string;
 };
 
 export type RoadmapNodePatchResponse = {
-  node: { id: string; status: string; updatedAt: number };
+  node: {
+    id: string;
+    label: string;
+    description: string;
+    status: string;
+    updatedAt: number;
+  };
 };
 
-export function roadmapNodeStatusPatchMutationOptions(roadmapId: string, queryClient: QueryClient) {
+function buildNodePatchBody(vars: RoadmapNodePatchVariables): Record<string, unknown> {
+  const body: Record<string, unknown> = {};
+  if (vars.status !== undefined) body.status = vars.status;
+  if (vars.label !== undefined) body.label = vars.label;
+  if (vars.description !== undefined) body.description = vars.description;
+  return body;
+}
+
+export function roadmapNodePatchMutationOptions(roadmapId: string, queryClient: QueryClient) {
   return mutationOptions({
-    mutationFn: async ({ nodeId, status }: RoadmapNodePatchVariables) => {
+    mutationFn: async (vars: RoadmapNodePatchVariables) => {
+      const { nodeId } = vars;
       return apiPatch<RoadmapNodePatchResponse>(
         `/roadmaps/${encodeURIComponent(roadmapId)}/nodes/${encodeURIComponent(nodeId)}`,
-        { status },
+        buildNodePatchBody(vars),
       );
     },
     onSuccess: async () => {

@@ -264,7 +264,7 @@ app.delete("/:id", async (c) => {
   return c.body(null, 204);
 });
 
-/** PATCH /api/roadmaps/:id/nodes/:nodeId */
+/** PATCH /api/roadmaps/:id/nodes/:nodeId（status / label / description のいずれか1つ以上） */
 app.patch("/:id/nodes/:nodeId", async (c) => {
   const userId = c.get("user").id;
   const roadmapId = c.req.param("id");
@@ -278,13 +278,54 @@ app.patch("/:id/nodes/:nodeId", async (c) => {
   if (!body || typeof body !== "object") {
     return jsonError(c, 400, "VALIDATION_ERROR", "リクエストボディが不正です。");
   }
-  const status = (body as { status?: unknown }).status;
-  if (!isNodeStatus(status)) {
+  const raw = body as { status?: unknown; label?: unknown; description?: unknown };
+
+  const updates: { status?: NodeStatus; label?: string; description?: string } = {};
+
+  if (raw.status !== undefined) {
+    if (!isNodeStatus(raw.status)) {
+      return jsonError(
+        c,
+        400,
+        "VALIDATION_ERROR",
+        "status は not_started / in_progress / completed のいずれかである必要があります。",
+      );
+    }
+    updates.status = raw.status;
+  }
+
+  if (raw.label !== undefined) {
+    if (typeof raw.label !== "string") {
+      return jsonError(c, 400, "VALIDATION_ERROR", "label は文字列である必要があります。");
+    }
+    const t = raw.label.trim();
+    if (t.length < 1 || t.length > 500) {
+      return jsonError(c, 400, "VALIDATION_ERROR", "label は1〜500文字である必要があります。");
+    }
+    updates.label = t;
+  }
+
+  if (raw.description !== undefined) {
+    if (typeof raw.description !== "string") {
+      return jsonError(c, 400, "VALIDATION_ERROR", "description は文字列である必要があります。");
+    }
+    if (raw.description.length > 5000) {
+      return jsonError(
+        c,
+        400,
+        "VALIDATION_ERROR",
+        "description は5000文字以内である必要があります。",
+      );
+    }
+    updates.description = raw.description;
+  }
+
+  if (Object.keys(updates).length === 0) {
     return jsonError(
       c,
       400,
       "VALIDATION_ERROR",
-      "status は not_started / in_progress / completed のいずれかである必要があります。",
+      "status / label / description のいずれかを指定してください。",
     );
   }
 
@@ -301,9 +342,15 @@ app.patch("/:id/nodes/:nodeId", async (c) => {
   const now = Date.now();
   const result = await db
     .update(nodes)
-    .set({ status, updatedAt: now })
+    .set({ ...updates, updatedAt: now })
     .where(and(eq(nodes.id, nodeId), eq(nodes.roadmapId, roadmapId)))
-    .returning({ id: nodes.id, status: nodes.status, updatedAt: nodes.updatedAt });
+    .returning({
+      id: nodes.id,
+      label: nodes.label,
+      description: nodes.description,
+      status: nodes.status,
+      updatedAt: nodes.updatedAt,
+    });
 
   const updated = result[0];
   if (!updated) {
@@ -313,6 +360,8 @@ app.patch("/:id/nodes/:nodeId", async (c) => {
   return c.json({
     node: {
       id: updated.id,
+      label: updated.label,
+      description: updated.description,
       status: updated.status,
       updatedAt: updated.updatedAt,
     },

@@ -9,7 +9,7 @@ import { useCallback } from "react";
 import type { RoadmapNode } from "@/types/roadmap";
 import { ApiRequestError } from "@/lib/api-client";
 import { RoadmapDetail } from "@/views/Roadmap";
-import { roadmapNodeStatusPatchMutationOptions } from "@/views/Roadmap/Detail/mutations";
+import { roadmapNodePatchMutationOptions } from "@/views/Roadmap/Detail/mutations";
 import { roadmapsDetailQueryOptions } from "@/views/Roadmap/Detail/queries";
 import { roadmapDeleteMutationOptions } from "@/views/Roadmap/List/mutations";
 
@@ -46,7 +46,7 @@ function RoadmapDetailPage() {
   const queryClient = useQueryClient();
   const { data: roadmap } = useSuspenseQuery(roadmapsDetailQueryOptions(roadmapId));
 
-  const patchMutation = useMutation(roadmapNodeStatusPatchMutationOptions(roadmapId, queryClient));
+  const patchMutation = useMutation(roadmapNodePatchMutationOptions(roadmapId, queryClient));
 
   const deleteMutation = useMutation({
     ...roadmapDeleteMutationOptions(queryClient, {
@@ -64,6 +64,13 @@ function RoadmapDetailPage() {
     [patchMutation],
   );
 
+  const handleUpdateNodeContent = useCallback(
+    async (nodeId: string, label: string, description: string) => {
+      await patchMutation.mutateAsync({ nodeId, label, description });
+    },
+    [patchMutation],
+  );
+
   const handleDeleteRoadmap = useCallback(() => {
     const ok = window.confirm(`「${roadmap.title}」を削除しますか？この操作は取り消せません。`);
     if (!ok) return;
@@ -74,6 +81,7 @@ function RoadmapDetailPage() {
     <RoadmapDetail
       roadmap={roadmap}
       onUpdateNodeStatus={handleUpdateNodeStatus}
+      onUpdateNodeContent={handleUpdateNodeContent}
       onDeleteRoadmap={handleDeleteRoadmap}
       isDeletePending={deleteMutation.isPending}
     />

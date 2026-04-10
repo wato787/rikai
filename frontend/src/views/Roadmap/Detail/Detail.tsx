@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   Background,
   ConnectionLineType,
@@ -16,12 +16,15 @@ import { motion } from "motion/react";
 import { Link } from "@tanstack/react-router";
 import type { Roadmap, RoadmapNode } from "@/types/roadmap";
 
+import { NodeEditModal } from "./NodeEditModal";
+
 function RoadmapNodeComponent({ data }: NodeProps) {
-  const { label, description, status, onToggleStatus } = data as {
+  const { label, description, status, onToggleStatus, onOpenEdit } = data as {
     label: string;
     description: string;
     status: RoadmapNode["status"];
     onToggleStatus: () => void;
+    onOpenEdit: () => void;
   };
 
   const getStatusIcon = () => {
@@ -76,7 +79,12 @@ function RoadmapNodeComponent({ data }: NodeProps) {
 
           <button
             type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenEdit();
+            }}
             className="shrink-0 p-1 text-zinc-300 hover:text-zinc-900 transition-colors opacity-0 group-hover:opacity-100 font-bold text-[10px]"
+            aria-label="ステップを編集"
           >
             編集
           </button>
@@ -105,6 +113,7 @@ function RoadmapNodeComponent({ data }: NodeProps) {
 export type RoadmapDetailProps = {
   roadmap: Roadmap;
   onUpdateNodeStatus: (nodeId: string, status: RoadmapNode["status"]) => void;
+  onUpdateNodeContent: (nodeId: string, label: string, description: string) => Promise<void>;
   onDeleteRoadmap?: () => void;
   isDeletePending?: boolean;
 };
@@ -112,9 +121,14 @@ export type RoadmapDetailProps = {
 export function RoadmapDetail({
   roadmap,
   onUpdateNodeStatus,
+  onUpdateNodeContent,
   onDeleteRoadmap,
   isDeletePending = false,
 }: RoadmapDetailProps) {
+  const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
+  const editingNode =
+    editingNodeId === null ? null : (roadmap.nodes.find((n) => n.id === editingNodeId) ?? null);
+
   const nodeTypes = useMemo(() => ({ roadmapNode: RoadmapNodeComponent }), []);
 
   const calculateProgress = () => {
@@ -139,6 +153,7 @@ export function RoadmapDetail({
                 : "not_started";
           onUpdateNodeStatus(node.id, nextStatus);
         },
+        onOpenEdit: () => setEditingNodeId(node.id),
       },
       draggable: true,
     }));
@@ -268,6 +283,12 @@ export function RoadmapDetail({
           />
         </ReactFlow>
       </div>
+
+      <NodeEditModal
+        node={editingNode}
+        onClose={() => setEditingNodeId(null)}
+        onSave={onUpdateNodeContent}
+      />
     </div>
   );
 }
