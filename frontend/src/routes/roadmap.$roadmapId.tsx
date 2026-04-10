@@ -5,13 +5,27 @@ import {
   type ErrorComponentProps,
   useNavigate,
 } from "@tanstack/react-router";
-import { useCallback } from "react";
-import type { RoadmapNode } from "@/types/roadmap";
+import { startTransition, useCallback, useOptimistic } from "react";
+import type { Roadmap, RoadmapNode } from "@/types/roadmap";
 import { ApiRequestError } from "@/lib/api-client";
 import { RoadmapDetail } from "@/views/Roadmap";
 import { roadmapNodePatchMutationOptions } from "@/views/Roadmap/Detail/mutations";
 import { roadmapsDetailQueryOptions } from "@/views/Roadmap/Detail/queries";
+import { useDebouncedNodePositionSave } from "@/views/Roadmap/Detail/useDebouncedNodePositionSave";
 import { roadmapDeleteMutationOptions } from "@/views/Roadmap/List/mutations";
+
+const POSITION_SAVE_DEBOUNCE_MS = 400;
+
+type NodePositionOptimistic = { nodeId: string; x: number; y: number };
+
+function applyNodePositionOptimistic(state: Roadmap, update: NodePositionOptimistic): Roadmap {
+  return {
+    ...state,
+    nodes: state.nodes.map((n) =>
+      n.id === update.nodeId ? { ...n, position: { x: update.x, y: update.y } } : n,
+    ),
+  };
+}
 
 const DetailPending = () => (
   <div className="py-16 text-center text-zinc-500 font-medium">読み込み中…</div>
@@ -46,6 +60,11 @@ function RoadmapDetailPage() {
   const queryClient = useQueryClient();
   const { data: roadmap } = useSuspenseQuery(roadmapsDetailQueryOptions(roadmapId));
 
+  const [optimisticRoadmap, addOptimisticNodePosition] = useOptimistic(
+    roadmap,
+    applyNodePositionOptimistic,
+  );
+
   const patchMutation = useMutation(roadmapNodePatchMutationOptions(roadmapId, queryClient));
 
   const deleteMutation = useMutation({
@@ -71,17 +90,37 @@ function RoadmapDetailPage() {
     [patchMutation],
   );
 
+  const persistNodePosition = useCallback(
+    (nodeId: string, x: number, y: number) => {
+      startTransition(async () => {
+        addOptimisticNodePosition({ nodeId, x, y });
+        await patchMutation.mutateAsync({
+          nodeId,
+          positionX: x,
+          positionY: y,
+        });
+      });
+    },
+    [addOptimisticNodePosition, patchMutation],
+  );
+
+  const schedulePositionSave = useDebouncedNodePositionSave(persistNodePosition, {
+    wait: POSITION_SAVE_DEBOUNCE_MS,
+    flushScopeKey: roadmapId,
+  });
+
   const handleUpdateNodePosition = useCallback(
     (nodeId: string, x: number, y: number) => {
-      const node = roadmap.nodes.find((n) => n.id === nodeId);
+      const node = optimisticRoadmap.nodes.find((n) => n.id === nodeId);
       const px = node?.position?.x;
       const py = node?.position?.y;
       const same =
         px !== undefined && py !== undefined && Math.abs(px - x) < 0.5 && Math.abs(py - y) < 0.5;
       if (same) return;
-      patchMutation.mutate({ nodeId, positionX: x, positionY: y });
+
+      schedulePositionSave(nodeId, x, y);
     },
-    [patchMutation, roadmap.nodes],
+    [optimisticRoadmap.nodes, schedulePositionSave],
   );
 
   const handleDeleteRoadmap = useCallback(() => {
@@ -92,7 +131,7 @@ function RoadmapDetailPage() {
 
   return (
     <RoadmapDetail
-      roadmap={roadmap}
+      roadmap={optimisticRoadmap}
       onUpdateNodeStatus={handleUpdateNodeStatus}
       onUpdateNodeContent={handleUpdateNodeContent}
       onUpdateNodePosition={handleUpdateNodePosition}
