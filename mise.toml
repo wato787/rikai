@@ -107,6 +107,11 @@ description = "データベースのマイグレーションを適用"
 dir = "backend"
 run = "bun run db:migrate"
 
+[tasks."db:seed"]
+description = "ローカルD1に開発ユーザーとサンプルロードマップを投入（要migrate）"
+dir = "backend"
+run = "bun run db:seed"
+
 [tasks."db:studio"]
 description = "データベースのスタジオを起動"
 dir = "backend"
