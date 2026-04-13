@@ -2,7 +2,7 @@
   "name": "backend",
   "type": "module",
   "scripts": {
-    "dev": "bun --hot src/index.ts",
+    "dev": "bunx wrangler dev --port 8080",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "bunx wrangler d1 migrations apply rikai_db --local",
     "db:seed": "bun scripts/seed-local.ts",
