@@ -48,7 +48,7 @@ export function BillingSection() {
             </p>
             {!isPending && ai ? (
               <p className="text-[11px] text-emerald-800/80 font-bold mt-2 tabular-nums">
-                今月の AI 生成: {ai.usedThisMonth} / {ai.limitThisMonth} 回（{ai.month}・UTC）
+                今月の AI 生成: {ai.usedThisMonth} / {ai.limitThisMonth} 回
               </p>
             ) : null}
           </div>
