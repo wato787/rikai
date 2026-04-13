@@ -3,13 +3,41 @@ import { Hono } from "hono";
 import Stripe from "stripe";
 
 import { getDb } from "../db";
-import { subscriptionCurrentPeriodEndMs } from "../lib/stripe-util";
 import { processedStripeEvents } from "../db/schemas/stripe-events";
 import { subscriptions } from "../db/schemas/subscription";
+import {
+  invoiceSubscriptionId,
+  stripeCustomerIdFromStripeObject,
+  subscriptionSyncPatchFromStripe,
+  type SubscriptionSyncPatch,
+} from "../lib/stripe-subscription-sync";
+import { createStripeClient } from "../lib/stripe-server";
 import type { AppEnv } from "../types/hono-env";
 
-function stripeClient(secret: string) {
-  return new Stripe(secret);
+async function applySubscriptionPatchByStripeSubId(
+  db: ReturnType<typeof getDb>,
+  stripeSubId: string,
+  stripeCustomerId: string | null,
+  patch: SubscriptionSyncPatch,
+) {
+  const [row] = await db
+    .select()
+    .from(subscriptions)
+    .where(eq(subscriptions.stripeSubscriptionId, stripeSubId))
+    .limit(1);
+  if (!row) return;
+
+  await db
+    .update(subscriptions)
+    .set({
+      plan: patch.plan,
+      status: patch.status,
+      stripeSubscriptionId: patch.stripeSubscriptionId,
+      currentPeriodEnd: patch.currentPeriodEnd,
+      stripeCustomerId: stripeCustomerId ?? row.stripeCustomerId,
+      updatedAt: Date.now(),
+    })
+    .where(eq(subscriptions.userId, row.userId));
 }
 
 const app = new Hono<AppEnv>();
@@ -35,7 +63,7 @@ app.post("/stripe", async (c) => {
   }
 
   const rawBody = await c.req.text();
-  const stripe = stripeClient(apiKey);
+  const stripe = createStripeClient(apiKey);
 
   let event: Stripe.Event;
   try {
@@ -62,6 +90,12 @@ app.post("/stripe", async (c) => {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
+        if (session.mode !== "subscription") {
+          break;
+        }
+        if (session.payment_status !== "paid") {
+          break;
+        }
         const userId = session.metadata?.userId ?? session.client_reference_id;
         if (!userId || typeof userId !== "string") {
           break;
@@ -70,45 +104,51 @@ app.post("/stripe", async (c) => {
           typeof session.subscription === "string"
             ? session.subscription
             : session.subscription?.id;
-        const custId =
-          typeof session.customer === "string" ? session.customer : session.customer?.id;
+        const custId = stripeCustomerIdFromStripeObject(session.customer);
         if (!subId || !custId) {
           break;
         }
         const sub = await stripe.subscriptions.retrieve(subId);
-        const periodEnd = subscriptionCurrentPeriodEndMs(sub);
+        const patch = subscriptionSyncPatchFromStripe(sub);
         await db
           .update(subscriptions)
           .set({
             stripeCustomerId: custId,
-            stripeSubscriptionId: sub.id,
-            plan: "pro",
-            status: "active",
-            currentPeriodEnd: periodEnd,
+            stripeSubscriptionId: patch.stripeSubscriptionId,
+            plan: patch.plan,
+            status: patch.status,
+            currentPeriodEnd: patch.currentPeriodEnd,
             updatedAt: Date.now(),
           })
           .where(eq(subscriptions.userId, userId));
         break;
       }
+      case "customer.subscription.updated": {
+        const subObj = event.data.object as Stripe.Subscription;
+        const custId = stripeCustomerIdFromStripeObject(subObj.customer);
+        const patch = subscriptionSyncPatchFromStripe(subObj);
+        await applySubscriptionPatchByStripeSubId(db, subObj.id, custId, patch);
+        break;
+      }
       case "customer.subscription.deleted": {
         const subObj = event.data.object as Stripe.Subscription;
-        const [row] = await db
-          .select()
-          .from(subscriptions)
-          .where(eq(subscriptions.stripeSubscriptionId, subObj.id))
-          .limit(1);
-        if (row) {
-          await db
-            .update(subscriptions)
-            .set({
-              plan: "free",
-              status: "canceled",
-              stripeSubscriptionId: null,
-              currentPeriodEnd: null,
-              updatedAt: Date.now(),
-            })
-            .where(eq(subscriptions.userId, row.userId));
+        const custId = stripeCustomerIdFromStripeObject(subObj.customer);
+        const patch = subscriptionSyncPatchFromStripe(subObj);
+        await applySubscriptionPatchByStripeSubId(db, subObj.id, custId, patch);
+        break;
+      }
+      case "invoice.paid": {
+        const invoice = event.data.object as Stripe.Invoice;
+        const subId = invoiceSubscriptionId(invoice);
+        if (!subId) {
+          break;
         }
+        const sub = await stripe.subscriptions.retrieve(subId);
+        const custId =
+          stripeCustomerIdFromStripeObject(invoice.customer) ??
+          stripeCustomerIdFromStripeObject(sub.customer);
+        const patch = subscriptionSyncPatchFromStripe(sub);
+        await applySubscriptionPatchByStripeSubId(db, sub.id, custId, patch);
         break;
       }
       case "invoice.payment_failed": {

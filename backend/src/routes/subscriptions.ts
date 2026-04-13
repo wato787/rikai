@@ -1,18 +1,19 @@
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
-import Stripe from "stripe";
 import { v7 as uuidv7 } from "uuid";
 
 import { getDb } from "../db";
 import { subscriptions } from "../db/schemas/subscription";
 import { jsonError } from "../lib/api-error";
+import {
+  currentAiUsageMonthKey,
+  FREE_AI_GENERATIONS_PER_MONTH,
+  PRO_AI_GENERATIONS_PER_MONTH,
+} from "../lib/plan-limits";
+import { createStripeClient } from "../lib/stripe-server";
 import { subscriptionCurrentPeriodEndMs } from "../lib/stripe-util";
 import { requireAuth } from "../middleware/auth";
 import type { AppEnv } from "../types/hono-env";
-
-function stripeClient(secret: string) {
-  return new Stripe(secret);
-}
 
 function frontendBase(c: { env: { FRONTEND_URL: string } }) {
   return c.env.FRONTEND_URL.replace(/\/$/, "");
@@ -48,15 +49,30 @@ app.get("/me", async (c) => {
         plan: "free",
         status: "inactive",
         currentPeriodEnd: null,
+        aiUsage: {
+          usedThisMonth: 0,
+          limitThisMonth: FREE_AI_GENERATIONS_PER_MONTH,
+          month: currentAiUsageMonthKey(),
+        },
       },
     });
   }
+
+  const month = currentAiUsageMonthKey();
+  const isPro = row.plan === "pro";
+  const usedThisMonth = row.aiUsageMonth === month ? Math.max(0, row.aiGenerationsUsed ?? 0) : 0;
+  const limitThisMonth = isPro ? PRO_AI_GENERATIONS_PER_MONTH : FREE_AI_GENERATIONS_PER_MONTH;
 
   return c.json({
     subscription: {
       plan: row.plan,
       status: row.status,
       currentPeriodEnd: row.currentPeriodEnd ?? null,
+      aiUsage: {
+        usedThisMonth,
+        limitThisMonth,
+        month,
+      },
     },
   });
 });
@@ -86,7 +102,7 @@ app.post("/checkout", async (c) => {
     return jsonError(c, 500, "INTERNAL_SERVER_ERROR", "サブスクリプション行が存在しません。");
   }
 
-  const stripe = stripeClient(secret);
+  const stripe = createStripeClient(secret);
   let customerId = row.stripeCustomerId;
 
   if (!customerId) {
@@ -109,6 +125,8 @@ app.post("/checkout", async (c) => {
     cancel_url: `${base}/settings?checkout=cancel`,
     metadata: { userId },
     client_reference_id: userId,
+    allow_promotion_codes: true,
+    subscription_data: { metadata: { userId } },
   });
 
   if (!session.url) {
@@ -146,7 +164,7 @@ app.post("/cancel", async (c) => {
     return jsonError(c, 400, "VALIDATION_ERROR", "キャンセル対象の Pro 契約がありません。");
   }
 
-  const stripe = stripeClient(secret);
+  const stripe = createStripeClient(secret);
 
   try {
     const sub = await stripe.subscriptions.retrieve(row.stripeSubscriptionId);

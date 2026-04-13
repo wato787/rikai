@@ -2,6 +2,8 @@ import { mutationOptions, type QueryClient } from "@tanstack/react-query";
 
 import { apiPost } from "@/lib/api-client";
 
+import { subscriptionMeQueryKey } from "@/views/Settings/queries";
+
 import { roadmapsListQueryKey } from "../List/queries";
 
 type RoadmapCreateVariables = { topic: string };
@@ -18,6 +20,7 @@ export function roadmapCreateMutationOptions(
     },
     onSuccess: async (data) => {
       await queryClient.invalidateQueries({ queryKey: roadmapsListQueryKey });
+      await queryClient.invalidateQueries({ queryKey: subscriptionMeQueryKey });
       await opts.onCreated(data.roadmapId);
     },
   });

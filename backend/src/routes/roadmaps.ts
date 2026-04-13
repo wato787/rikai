@@ -7,6 +7,12 @@ import { edges, nodes, roadmaps } from "../db/schemas/roadmap";
 import { subscriptions } from "../db/schemas/subscription";
 import { generateRoadmapWithGemini } from "../lib/gemini";
 import { jsonError } from "../lib/api-error";
+import {
+  currentAiUsageMonthKey,
+  FREE_AI_GENERATIONS_PER_MONTH,
+  FREE_ROADMAP_MAX,
+  PRO_AI_GENERATIONS_PER_MONTH,
+} from "../lib/plan-limits";
 import { requireAuth } from "../middleware/auth";
 import type { AppEnv } from "../types/hono-env";
 
@@ -95,27 +101,60 @@ app.post("/", async (c) => {
   }
 
   const db = getDb(c.env.rikai_db);
+  const now = Date.now();
+  const usageMonth = currentAiUsageMonthKey();
 
-  const [sub] = await db
+  let [sub] = await db
     .select()
     .from(subscriptions)
     .where(eq(subscriptions.userId, userId))
     .limit(1);
 
-  const isPro = sub?.plan === "pro";
+  if (!sub) {
+    const subId = uuidv7();
+    await db.insert(subscriptions).values({
+      id: subId,
+      userId,
+      plan: "free",
+      status: "inactive",
+      createdAt: now,
+      updatedAt: now,
+    });
+    [sub] = await db.select().from(subscriptions).where(eq(subscriptions.userId, userId)).limit(1);
+  }
+
+  if (!sub) {
+    return jsonError(c, 500, "INTERNAL_SERVER_ERROR", "サブスクリプションの初期化に失敗しました。");
+  }
+
+  const isPro = sub.plan === "pro";
   if (!isPro) {
     const [{ c: roadmapCount }] = await db
       .select({ c: count() })
       .from(roadmaps)
       .where(eq(roadmaps.userId, userId));
-    if (roadmapCount >= 3) {
+    if (roadmapCount >= FREE_ROADMAP_MAX) {
       return jsonError(
         c,
         409,
         "ROADMAP_LIMIT_EXCEEDED",
-        "無料プランの作成上限（3件）に達しています。",
+        `無料プランの作成上限（${FREE_ROADMAP_MAX}件）に達しています。`,
       );
     }
+  }
+
+  const usedThisMonth =
+    sub.aiUsageMonth === usageMonth ? Math.max(0, sub.aiGenerationsUsed ?? 0) : 0;
+  const aiMonthlyLimit = isPro ? PRO_AI_GENERATIONS_PER_MONTH : FREE_AI_GENERATIONS_PER_MONTH;
+  if (usedThisMonth >= aiMonthlyLimit) {
+    return jsonError(
+      c,
+      403,
+      "AI_GENERATION_LIMIT_EXCEEDED",
+      isPro
+        ? `今月の AI 生成上限（${aiMonthlyLimit}回）に達しています。来月以降に再度お試しください。`
+        : `無料プランでは月${FREE_AI_GENERATIONS_PER_MONTH}回まで AI でロードマップを生成できます。Pro にアップグレードすると月${PRO_AI_GENERATIONS_PER_MONTH}回まで利用できます。`,
+    );
   }
 
   const rawGeminiKey = process.env.GEMINI_API_KEY ?? c.env.GEMINI_API_KEY;
@@ -143,7 +182,6 @@ app.post("/", async (c) => {
   }
 
   const roadmapId = uuidv7();
-  const now = Date.now();
   const idMap = new Map<string, string>();
   for (const n of payload.nodes) {
     if (!idMap.has(n.id)) idMap.set(n.id, uuidv7());
@@ -188,6 +226,8 @@ app.post("/", async (c) => {
     });
   }
 
+  const nextAiUsed = usedThisMonth + 1;
+
   try {
     await db.batch([
       db.insert(roadmaps).values({
@@ -200,6 +240,14 @@ app.post("/", async (c) => {
       }),
       db.insert(nodes).values(nodeRows),
       ...(edgeRows.length > 0 ? [db.insert(edges).values(edgeRows)] : []),
+      db
+        .update(subscriptions)
+        .set({
+          aiGenerationsUsed: nextAiUsed,
+          aiUsageMonth: usageMonth,
+          updatedAt: now,
+        })
+        .where(eq(subscriptions.userId, userId)),
     ]);
   } catch (e) {
     console.error(e);
