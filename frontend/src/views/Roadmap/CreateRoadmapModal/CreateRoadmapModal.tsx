@@ -113,7 +113,7 @@ function CreateRoadmapModalForm({ toggle }: { toggle: UseToggleReturn }) {
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="ロードマップの名称（任意・学習目標と併せて送信されます）"
+                  placeholder="例: Web開発入門（任意）"
                   className="w-full px-6 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl text-zinc-900 placeholder:text-zinc-300 focus:outline-none focus:border-zinc-900 transition-all font-medium"
                 />
               </div>
@@ -129,7 +129,7 @@ function CreateRoadmapModalForm({ toggle }: { toggle: UseToggleReturn }) {
                   id="create-roadmap-topic"
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
-                  placeholder="習得したいスキルや目標を入力してください..."
+                  placeholder="学びたいこと・目標を入力"
                   className="w-full h-32 px-6 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl text-zinc-900 placeholder:text-zinc-300 focus:outline-none focus:border-zinc-900 transition-all resize-none font-medium leading-relaxed"
                 />
               </div>

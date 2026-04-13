@@ -36,21 +36,23 @@ export function RoadmapList({ onOpenCreate }: RoadmapListProps) {
 
   return (
     <div className="space-y-16">
-      <header className="flex items-end justify-between">
+      <header className="flex items-end justify-between gap-6">
         <div>
           <h1 className="text-4xl font-bold text-zinc-900 tracking-tight">ロードマップ</h1>
           <p className="text-zinc-400 mt-3 font-medium">
             あなたの学習の旅を、穏やかにサポートします。
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onOpenCreate}
-          className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-bold text-sm hover:bg-emerald-700 transition-all active:scale-95 shadow-lg shadow-emerald-600/20"
-        >
-          <Plus size={18} />
-          <span>作成</span>
-        </button>
+        {roadmaps.length > 0 ? (
+          <button
+            type="button"
+            onClick={onOpenCreate}
+            className="flex shrink-0 items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-bold text-sm hover:bg-emerald-700 transition-all active:scale-95 shadow-lg shadow-emerald-600/20"
+          >
+            <Plus size={18} />
+            <span>作成</span>
+          </button>
+        ) : null}
       </header>
 
       <div className="space-y-6">
