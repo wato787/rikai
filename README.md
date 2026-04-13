@@ -67,18 +67,10 @@ mise run typecheck:frontend
 mise run typecheck:backend
 ```
 
-## 環境変数管理 (dotenvx)
+## 環境変数
 
-```bash
-# バックエンドの環境変数を取得
-mise dotenvx:get:backend
+- **フロントエンド**: `frontend/.env`（Vite が自動読み込み）。テンプレートは `frontend/.env.example`。
+- **バックエンド**: `backend/.env`（`bun` 実行時にカレントの `.env` を読み込み）。Drizzle Kit 用テンプレートは `backend/.env.example`。
+- **Wrangler 開発**（`mise run dev:backend`）: シークレットは [Wrangler のドキュメント](https://developers.cloudflare.com/workers/configuration/secrets/) に従い `.dev.vars` などで管理。
 
-# フロントエンドの環境変数を取得
-mise dotenvx:get:frontend
-
-# バックエンドの環境変数を暗号化
-mise dotenvx:encrypt:backend
-
-# フロントエンドの環境変数を暗号化
-mise dotenvx:encrypt:frontend
-```
+以前 **dotenvx で暗号化した** `.env`（`encrypted:` や `DOTENV_PUBLIC_KEY` があるもの）を使っている場合は、**削除前に** `npx @dotenvx/dotenvx decrypt` でプレーンテキストに戻すか、`.env.example` をコピーして値を入れ直してください。
