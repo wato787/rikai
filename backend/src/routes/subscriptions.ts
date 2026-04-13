@@ -11,6 +11,7 @@ import {
   PRO_AI_GENERATIONS_PER_MONTH,
 } from "../lib/plan-limits";
 import { createStripeClient } from "../lib/stripe-server";
+import { subscriptionSyncPatchFromStripe } from "../lib/stripe-subscription-sync";
 import { subscriptionCurrentPeriodEndMs } from "../lib/stripe-util";
 import { requireAuth } from "../middleware/auth";
 import type { AppEnv } from "../types/hono-env";
@@ -49,6 +50,7 @@ app.get("/me", async (c) => {
         plan: "free",
         status: "inactive",
         currentPeriodEnd: null,
+        cancelAtPeriodEnd: false,
         aiUsage: {
           usedThisMonth: 0,
           limitThisMonth: FREE_AI_GENERATIONS_PER_MONTH,
@@ -59,15 +61,57 @@ app.get("/me", async (c) => {
   }
 
   const month = currentAiUsageMonthKey();
-  const isPro = row.plan === "pro";
+  let plan = row.plan;
+  let status = row.status;
+  const isPro = plan === "pro";
   const usedThisMonth = row.aiUsageMonth === month ? Math.max(0, row.aiGenerationsUsed ?? 0) : 0;
-  const limitThisMonth = isPro ? PRO_AI_GENERATIONS_PER_MONTH : FREE_AI_GENERATIONS_PER_MONTH;
+  let limitThisMonth = isPro ? PRO_AI_GENERATIONS_PER_MONTH : FREE_AI_GENERATIONS_PER_MONTH;
+
+  let cancelAtPeriodEnd = false;
+  let currentPeriodEnd = row.currentPeriodEnd ?? null;
+  if (row.stripeSubscriptionId) {
+    const stripeSecret = process.env.STRIPE_SECRET_KEY ?? c.env.STRIPE_SECRET_KEY;
+    if (stripeSecret) {
+      try {
+        const stripe = createStripeClient(stripeSecret);
+        const sub = await stripe.subscriptions.retrieve(row.stripeSubscriptionId);
+        const patch = subscriptionSyncPatchFromStripe(sub);
+        plan = patch.plan;
+        status = patch.status;
+        cancelAtPeriodEnd = sub.cancel_at_period_end === true;
+        currentPeriodEnd = patch.currentPeriodEnd ?? subscriptionCurrentPeriodEndMs(sub);
+        limitThisMonth =
+          plan === "pro" ? PRO_AI_GENERATIONS_PER_MONTH : FREE_AI_GENERATIONS_PER_MONTH;
+
+        if (
+          patch.plan !== row.plan ||
+          patch.status !== row.status ||
+          patch.stripeSubscriptionId !== row.stripeSubscriptionId ||
+          patch.currentPeriodEnd !== row.currentPeriodEnd
+        ) {
+          await db
+            .update(subscriptions)
+            .set({
+              plan: patch.plan,
+              status: patch.status,
+              stripeSubscriptionId: patch.stripeSubscriptionId,
+              currentPeriodEnd: patch.currentPeriodEnd,
+              updatedAt: Date.now(),
+            })
+            .where(eq(subscriptions.userId, userId));
+        }
+      } catch {
+        /* Stripe 取得失敗時は DB の値のまま */
+      }
+    }
+  }
 
   return c.json({
     subscription: {
-      plan: row.plan,
-      status: row.status,
-      currentPeriodEnd: row.currentPeriodEnd ?? null,
+      plan,
+      status,
+      currentPeriodEnd,
+      cancelAtPeriodEnd,
       aiUsage: {
         usedThisMonth,
         limitThisMonth,
@@ -190,6 +234,7 @@ app.post("/cancel", async (c) => {
         plan: "pro",
         status: "active",
         currentPeriodEnd,
+        cancelAtPeriodEnd: true,
       },
     });
   } catch {
