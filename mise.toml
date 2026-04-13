@@ -82,9 +82,14 @@ dir = "backend"
 run = "bun run db:migrate"
 
 [tasks."db:seed"]
-description = "ローカルD1に開発ユーザーとサンプルロードマップを投入（要migrate）"
+description = "ローカルD1をクリアし test@test.com / wwww1111 を投入（要migrate）"
 dir = "backend"
 run = "bun run db:seed"
+
+[tasks."db:reset"]
+description = "ローカルD1にマイグレーション適用後、上記シードを実行"
+dir = "backend"
+run = "bun run db:reset"
 
 [tasks."db:studio"]
 description = "データベースのスタジオを起動"

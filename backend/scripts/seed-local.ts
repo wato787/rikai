@@ -1,103 +1,128 @@
 /**
- * ローカル D1 に開発用ユーザーとサンプルロードマップを投入します。
+ * ローカル D1（wrangler dev）の SQLite を空にし、開発用アカウントを1件投入する。
  *
- * 事前: `bun run db:migrate`（または `mise run db:migrate`）でマイグレーション済みであること。
+ * 前提: `bun run db:migrate` でマイグレーション済みであること。
  *
- * ログイン（/login）:
- *   メール: test@test.com
- *   パスワード: wwww1111
+ * 既定アカウント:
+ * - email: test@test.com
+ * - password: wwww1111
  */
-import { spawnSync } from "node:child_process";
-import { writeFileSync, unlinkSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { existsSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
+import { Database } from "bun:sqlite";
 import { hashPassword } from "better-auth/crypto";
+import { eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/bun-sqlite";
+import { v7 as uuidv7 } from "uuid";
 
-const D1_NAME = "rikai-db";
+import * as schema from "../src/db/schema";
+import { account, session, user, verification } from "../src/db/schemas/auth";
+import { edges, nodes, roadmaps } from "../src/db/schemas/roadmap";
+import { processedStripeEvents } from "../src/db/schemas/stripe-events";
+import { subscriptions } from "../src/db/schemas/subscription";
 
-const USER_ID = "11111111-1111-4111-8111-111111111111";
-const ACCOUNT_ID = "22222222-2222-4222-8222-222222222222";
-const SUBSCRIPTION_ID = "33333333-3333-4333-8333-333333333333";
-const ROADMAP_ID = "44444444-4444-4444-8444-444444444444";
-const NODE_IDS = [
-  "55555555-5555-5555-8555-555555555551",
-  "55555555-5555-5555-8555-555555555552",
-  "55555555-5555-5555-8555-555555555553",
-] as const;
-const EDGE_IDS = [
-  "66666666-6666-6666-8666-666666666661",
-  "66666666-6666-6666-8666-666666666662",
-] as const;
+const SEED_EMAIL = "test@test.com";
+const SEED_PASSWORD = "wwww1111";
+const SEED_NAME = "開発ユーザー";
 
-const EMAIL = "test@test.com";
-const DISPLAY_NAME = "開発ユーザー";
-const PASSWORD_PLAIN = "wwww1111";
+function resolveSqlitePath(): string {
+  const raw = process.env.DATABASE_URL?.trim();
+  if (raw && raw !== ":memory:") {
+    const path = raw.replace(/^file:/, "");
+    if (existsSync(path)) return path;
+  }
+
+  const miniflareDir = join(
+    import.meta.dirname,
+    "../.wrangler/state/v3/d1/miniflare-D1DatabaseObject",
+  );
+  if (!existsSync(miniflareDir)) {
+    throw new Error(
+      `ローカル D1 の SQLite が見つかりません: ${miniflareDir}\n` +
+        "先に `bunx wrangler d1 migrations apply rikai_db --local` を実行するか、一度 `wrangler dev` を起動してください。",
+    );
+  }
+
+  const candidates = readdirSync(miniflareDir)
+    .filter((f) => f.endsWith(".sqlite"))
+    .map((f) => join(miniflareDir, f));
+  if (candidates.length === 0) {
+    throw new Error(`${miniflareDir} 内に .sqlite がありません。`);
+  }
+
+  candidates.sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs);
+  return candidates[0]!;
+}
+
+function clearAppData(db: ReturnType<typeof drizzle>) {
+  db.delete(edges).run();
+  db.delete(nodes).run();
+  db.delete(roadmaps).run();
+  db.delete(processedStripeEvents).run();
+  db.delete(session).run();
+  db.delete(account).run();
+  db.delete(subscriptions).run();
+  db.delete(verification).run();
+  db.delete(user).run();
+}
 
 async function main() {
-  const scriptDir = dirname(fileURLToPath(import.meta.url));
-  const backendRoot = join(scriptDir, "..");
-  const tmpSql = join(tmpdir(), `rikai-seed-${process.pid}.sql`);
+  const sqlitePath = resolveSqlitePath();
+  console.info(`SQLite: ${sqlitePath}`);
 
-  const passwordHash = await hashPassword(PASSWORD_PLAIN);
-  const now = Date.now();
+  const sqlite = new Database(sqlitePath);
+  sqlite.exec("PRAGMA foreign_keys = OFF;");
+  const db = drizzle(sqlite, { schema });
 
-  const sql = `
-PRAGMA foreign_keys = ON;
+  clearAppData(db);
 
-DELETE FROM user WHERE id = '${USER_ID}';
+  const userId = uuidv7();
+  const now = new Date();
+  const passwordHash = await hashPassword(SEED_PASSWORD);
 
-INSERT INTO user (id, name, email, email_verified, image, created_at, updated_at) VALUES
-  ('${USER_ID}', '${DISPLAY_NAME}', '${EMAIL}', 1, NULL, ${now}, ${now});
+  db.insert(user)
+    .values({
+      id: userId,
+      name: SEED_NAME,
+      email: SEED_EMAIL.toLowerCase(),
+      emailVerified: true,
+      image: null,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .run();
 
-INSERT INTO account (id, account_id, provider_id, user_id, password, created_at, updated_at) VALUES
-  ('${ACCOUNT_ID}', '${EMAIL}', 'credential', '${USER_ID}', '${passwordHash}', ${now}, ${now});
+  db.insert(account)
+    .values({
+      id: uuidv7(),
+      accountId: userId,
+      providerId: "credential",
+      userId,
+      password: passwordHash,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .run();
 
-INSERT INTO subscriptions (id, user_id, stripe_customer_id, stripe_subscription_id, plan, status, current_period_end, created_at, updated_at) VALUES
-  ('${SUBSCRIPTION_ID}', '${USER_ID}', NULL, NULL, 'free', 'inactive', NULL, ${now}, ${now});
+  db.insert(subscriptions)
+    .values({
+      id: uuidv7(),
+      userId,
+      plan: "free",
+      status: "inactive",
+      currentPeriodEnd: null,
+      createdAt: now.getTime(),
+      updatedAt: now.getTime(),
+    })
+    .run();
 
-INSERT INTO roadmaps (id, user_id, title, topic, created_at, updated_at) VALUES
-  ('${ROADMAP_ID}', '${USER_ID}', 'サンプル: はじめてのロードマップ', 'ローカル開発用のダミーデータです。', ${now}, ${now});
+  sqlite.exec("PRAGMA foreign_keys = ON;");
 
-INSERT INTO nodes (id, roadmap_id, label, description, status, order_index, created_at, updated_at) VALUES
-  ('${NODE_IDS[0]}', '${ROADMAP_ID}', 'ステップ 1', '最初の一歩', 'completed', 0, ${now}, ${now}),
-  ('${NODE_IDS[1]}', '${ROADMAP_ID}', 'ステップ 2', '続きの学習', 'in_progress', 1, ${now}, ${now}),
-  ('${NODE_IDS[2]}', '${ROADMAP_ID}', 'ステップ 3', '仕上げ', 'not_started', 2, ${now}, ${now});
+  const row = db.select({ email: user.email }).from(user).where(eq(user.id, userId)).get();
+  console.info("シード完了:", row?.email ?? userId, `(${SEED_NAME})`);
+  console.info("ログイン: ", SEED_EMAIL, "/", SEED_PASSWORD);
 
-INSERT INTO edges (id, roadmap_id, source_id, target_id, created_at) VALUES
-  ('${EDGE_IDS[0]}', '${ROADMAP_ID}', '${NODE_IDS[0]}', '${NODE_IDS[1]}', ${now}),
-  ('${EDGE_IDS[1]}', '${ROADMAP_ID}', '${NODE_IDS[1]}', '${NODE_IDS[2]}', ${now});
-`;
-
-  writeFileSync(tmpSql, sql.trim(), "utf8");
-
-  const r = spawnSync(
-    "bunx",
-    ["wrangler", "d1", "execute", D1_NAME, "--local", "--file", tmpSql],
-    {
-      cwd: backendRoot,
-      stdio: "inherit",
-      encoding: "utf8",
-    },
-  );
-
-  try {
-    unlinkSync(tmpSql);
-  } catch {
-    /* ignore */
-  }
-
-  if (r.error) {
-    console.error(r.error);
-    process.exit(1);
-  }
-  if (r.status !== 0) {
-    process.exit(r.status ?? 1);
-  }
-
-  console.log("ローカル D1 にシードを投入しました。");
-  console.log(`  メール: ${EMAIL}`);
-  console.log(`  パスワード: ${PASSWORD_PLAIN}`);
+  sqlite.close();
 }
 
 main().catch((e) => {
