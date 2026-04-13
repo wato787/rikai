@@ -4,9 +4,11 @@
 BETTER_AUTH_SECRET=
 BETTER_AUTH_URL=http://localhost:8080
 
-FRONTEND_URL=http://localhost:5173
+# frontend/vite.config.ts の server.port（既定 3000）と揃える
+FRONTEND_URL=http://localhost:3000
 
 STRIPE_SECRET_KEY=
+# wrangler dev（localhost）+ sk_test_ なら署名検証を省略するため未設定でも可。本番・トンネル先では whsec 必須
 STRIPE_WEBHOOK_SECRET=
 STRIPE_PRICE_PRO=
 

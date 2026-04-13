@@ -9,8 +9,8 @@ NODE_ENV = "development"
 
 # タスク定義
 [tasks.dev]
-description = "バックエンドとフロントエンドを並行起動"
-depends = ["dev:backend", "dev:frontend"]
+description = "バックエンド・フロント・Stripe Webhook 転送を並行起動"
+depends = ["dev:backend", "dev:frontend", "dev:stripe"]
 
 [tasks."dev:backend"]
 description = "バックエンド開発サーバーを起動"
@@ -20,6 +20,10 @@ run = "bunx wrangler dev --port 8080"
 [tasks."dev:frontend"]
 description = "フロントエンド開発サーバーを起動"
 run = "bun run dev:frontend"
+
+[tasks."dev:stripe"]
+description = "Stripe Webhook をローカルへ転送（localhost + sk_test_ なら whsec 未設定可）"
+run = "stripe listen --forward-to http://localhost:8080/api/webhooks/stripe"
 
 [tasks.build]
 description = "全パッケージをビルド"

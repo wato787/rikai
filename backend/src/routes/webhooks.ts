@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
+import type { Context } from "hono";
 import Stripe from "stripe";
 
 import { getDb } from "../db";
@@ -13,6 +14,38 @@ import {
 } from "../lib/stripe-subscription-sync";
 import { createStripeClient } from "../lib/stripe-server";
 import type { AppEnv } from "../types/hono-env";
+
+/** wrangler dev + stripe listen が届けるホスト想定（本番 URL では常に false） */
+function isLocalWebhookHost(c: Context): boolean {
+  try {
+    const host = new URL(c.req.url).hostname.toLowerCase();
+    return host === "localhost" || host === "127.0.0.1" || host === "::1";
+  } catch {
+    return false;
+  }
+}
+
+/** テストキーかつローカルホストへのリクエストだけ署名省略（本番・sk_live_ では不可） */
+function skipStripeWebhookSignatureVerify(
+  c: Context,
+  stripeSecretKey: string | undefined,
+): boolean {
+  if (!stripeSecretKey?.startsWith("sk_test_")) return false;
+  return isLocalWebhookHost(c);
+}
+
+function parseStripeEventInsecure(rawBody: string): Stripe.Event | null {
+  try {
+    const parsed = JSON.parse(rawBody) as unknown;
+    if (!parsed || typeof parsed !== "object") return null;
+    const o = parsed as Record<string, unknown>;
+    if (typeof o.id !== "string" || typeof o.type !== "string") return null;
+    if (!o.data || typeof o.data !== "object") return null;
+    return parsed as Stripe.Event;
+  } catch {
+    return null;
+  }
+}
 
 async function applySubscriptionPatchByStripeSubId(
   db: ReturnType<typeof getDb>,
@@ -44,19 +77,6 @@ const app = new Hono<AppEnv>();
 
 /** POST /api/webhooks/stripe — 署名検証のみ（認証なし） */
 app.post("/stripe", async (c) => {
-  const secret = process.env.STRIPE_WEBHOOK_SECRET ?? c.env.STRIPE_WEBHOOK_SECRET;
-  if (!secret) {
-    return c.text("Webhook secret not configured", 400);
-  }
-
-  const signature = c.req.header("stripe-signature");
-  if (!signature) {
-    return c.json(
-      { error: { code: "VALIDATION_ERROR", message: "stripe-signature がありません。" } },
-      400,
-    );
-  }
-
   const apiKey = process.env.STRIPE_SECRET_KEY ?? c.env.STRIPE_SECRET_KEY;
   if (!apiKey) {
     return c.text("Stripe API key not configured", 500);
@@ -65,14 +85,40 @@ app.post("/stripe", async (c) => {
   const rawBody = await c.req.text();
   const stripe = createStripeClient(apiKey);
 
+  const skipVerify = skipStripeWebhookSignatureVerify(c, apiKey);
   let event: Stripe.Event;
-  try {
-    event = stripe.webhooks.constructEvent(rawBody, signature, secret);
-  } catch {
-    return c.json(
-      { error: { code: "VALIDATION_ERROR", message: "署名検証に失敗しました。" } },
-      400,
-    );
+
+  if (skipVerify) {
+    const parsed = parseStripeEventInsecure(rawBody);
+    if (!parsed) {
+      return c.json(
+        { error: { code: "VALIDATION_ERROR", message: "Webhook 本文の解析に失敗しました。" } },
+        400,
+      );
+    }
+    event = parsed;
+  } else {
+    const secret = process.env.STRIPE_WEBHOOK_SECRET ?? c.env.STRIPE_WEBHOOK_SECRET;
+    if (!secret) {
+      return c.text("Webhook secret not configured", 400);
+    }
+
+    const signature = c.req.header("stripe-signature");
+    if (!signature) {
+      return c.json(
+        { error: { code: "VALIDATION_ERROR", message: "stripe-signature がありません。" } },
+        400,
+      );
+    }
+
+    try {
+      event = stripe.webhooks.constructEvent(rawBody, signature, secret);
+    } catch {
+      return c.json(
+        { error: { code: "VALIDATION_ERROR", message: "署名検証に失敗しました。" } },
+        400,
+      );
+    }
   }
 
   const db = getDb(c.env.rikai_db);
