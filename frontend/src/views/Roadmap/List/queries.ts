@@ -12,7 +12,7 @@ type ApiRoadmapListRow = {
   createdAt: number | string;
 };
 
-export type ApiRoadmapsListResponse = {
+type ApiRoadmapsListResponse = {
   roadmaps: ApiRoadmapListRow[];
 };
 

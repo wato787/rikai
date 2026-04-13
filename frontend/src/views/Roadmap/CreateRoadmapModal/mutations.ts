@@ -4,9 +4,9 @@ import { apiPost } from "@/lib/api-client";
 
 import { roadmapsListQueryKey } from "../List/queries";
 
-export type RoadmapCreateVariables = { topic: string };
+type RoadmapCreateVariables = { topic: string };
 
-export type RoadmapCreateResponse = { roadmapId: string };
+type RoadmapCreateResponse = { roadmapId: string };
 
 export function roadmapCreateMutationOptions(
   queryClient: QueryClient,

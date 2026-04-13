@@ -6,7 +6,7 @@ import { sessionQueryKey } from "@/lib/auth-session";
 
 const loginRouteApi = getRouteApi("/login");
 
-export type LoginCredentials = {
+type LoginCredentials = {
   email: string;
   password: string;
 };

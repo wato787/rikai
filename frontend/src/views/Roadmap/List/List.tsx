@@ -7,7 +7,7 @@ import type { RoadmapSummary } from "@/types/roadmap";
 import { roadmapDeleteMutationOptions } from "./mutations";
 import { roadmapsListQueryOptions } from "./queries";
 
-export type RoadmapListProps = {
+type RoadmapListProps = {
   onOpenCreate: () => void;
 };
 

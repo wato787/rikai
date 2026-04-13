@@ -9,7 +9,7 @@ import { ApiRequestError } from "@/lib/api-client";
 
 import { roadmapCreateMutationOptions } from "./mutations";
 
-export type CreateRoadmapModalProps = {
+type CreateRoadmapModalProps = {
   /** 開閉状態（`useToggle`） */
   toggle: UseToggleReturn;
 };

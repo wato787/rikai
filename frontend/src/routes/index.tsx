@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { useToggle } from "@/hooks/useToggle";
-import { CreateRoadmapModal } from "../views/Roadmap/CreateRoadmapModal/CreateRoadmapModal";
-import { RoadmapList } from "../views/Roadmap/List/List";
+import { CreateRoadmapModal, RoadmapList } from "@/views/Roadmap";
 import { roadmapsListQueryOptions } from "../views/Roadmap/List/queries";
 
 const IndexPending = () => (

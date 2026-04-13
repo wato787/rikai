@@ -4,7 +4,7 @@ import type { ApiErrorBody } from "./api-types";
  * バックエンド REST のベースパス。
  * 開発時は Vite の `/api` プロキシ、本番では `VITE_API_BASE` で上書き可（例: https://api.example.com/api）。
  */
-export function getApiBase(): string {
+function getApiBase(): string {
   const raw = import.meta.env.VITE_API_BASE as string | undefined;
   if (raw != null && raw !== "") {
     return raw.replace(/\/$/, "");

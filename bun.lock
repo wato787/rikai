@@ -36,13 +36,11 @@
         "@tanstack/react-query": "^5.96.2",
         "@tanstack/react-router": "^1.168.10",
         "better-auth": "^1.4.10",
-        "clsx": "^2.1.1",
         "lucide-react": "^0.562.0",
         "motion": "^12.38.0",
         "react": "^19",
         "react-dom": "^19",
         "reactflow": "^11.11.4",
-        "tailwind-merge": "^3.5.0",
       },
       "devDependencies": {
         "@tailwindcss/postcss": "4.1.18",
@@ -776,8 +774,6 @@
     "strip-json-comments": ["strip-json-comments@2.0.1", "", {}, "sha512-4gB8na07fecVVkOI6Rs4e7T6NOTki5EmL7TUduTs6bu3EdnSycntVJ4re8kgZA+wx9IueI2Y11bfbgwtzuE0KQ=="],
 
     "stripe": ["stripe@22.0.0", "", { "peerDependencies": { "@types/node": ">=18" }, "optionalPeers": ["@types/node"] }, "sha512-q1UgXXpSfZCmkyzZEh3vFEWT7+ajuaFGqaP9Tsi2NMtwlkigIWNr+KBIUQqtNeNEsreDKgdn+BP5HRW9JDj22Q=="],
-
-    "tailwind-merge": ["tailwind-merge@3.5.0", "", {}, "sha512-I8K9wewnVDkL1NTGoqWmVEIlUcB9gFriAEkXkfCjX5ib8ezGxtR3xD7iZIxrfArjEsH7F1CHD4RFUtxefdqV/A=="],
 
     "tailwindcss": ["tailwindcss@4.1.18", "", {}, "sha512-4+Z+0yiYyEtUVCScyfHCxOYP06L5Ne+JiHhY2IjR2KWMIWhJOYZKLSGZaP5HkZ8+bY0cxfzwDE5uOmzFXyIwxw=="],
 

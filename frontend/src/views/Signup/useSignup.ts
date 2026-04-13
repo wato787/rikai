@@ -6,7 +6,7 @@ import { sessionQueryKey } from "@/lib/auth-session";
 
 const signupRouteApi = getRouteApi("/signup");
 
-export type SignupCredentials = {
+type SignupCredentials = {
   name: string;
   email: string;
   password: string;

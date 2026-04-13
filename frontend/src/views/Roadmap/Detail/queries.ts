@@ -4,14 +4,14 @@ import { apiGet } from "@/lib/api-client";
 import type { Roadmap, RoadmapNodeStatus } from "@/types/roadmap";
 
 /** `List/queries` の `["roadmaps", "list"]` とプレフィックスを揃える */
-export const roadmapsQueryKey = ["roadmaps"] as const;
+const roadmapsQueryKey = ["roadmaps"] as const;
 
 export function roadmapsDetailQueryKey(id: string) {
   return [...roadmapsQueryKey, "detail", id] as const;
 }
 
 /** GET /roadmaps/:id */
-export type RoadmapDetailJson = {
+type RoadmapDetailJson = {
   roadmap: { id: string; title: string; topic: string; createdAt: number };
   nodes: Array<{
     id: string;

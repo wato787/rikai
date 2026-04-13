@@ -5,7 +5,7 @@ import { authClient } from "@/lib/auth-client";
 export const sessionQueryKey = ["auth", "session"] as const;
 
 /** Better Auth のセッションで参照する user の形 */
-export type AuthSessionUser = {
+type AuthSessionUser = {
   id: string;
   name: string;
   email: string;
@@ -15,7 +15,7 @@ export type AuthSessionUser = {
   updatedAt: Date | string;
 };
 
-export type SessionPayload = {
+type SessionPayload = {
   user: AuthSessionUser;
   session: {
     id: string;
@@ -29,7 +29,7 @@ export type SessionPayload = {
   };
 };
 
-export async function fetchSession(): Promise<SessionPayload | null> {
+async function fetchSession(): Promise<SessionPayload | null> {
   const res = await authClient.getSession();
   if (res.error) {
     throw new Error(res.error.message ?? "セッションの取得に失敗しました。");
@@ -43,7 +43,7 @@ export const sessionQueryOptions = queryOptions({
 });
 
 /** オープンリダイレクトを防ぎ、アプリ内パス（先頭 `/`）のみ許可 */
-export function parseInternalRedirect(raw: unknown): string | undefined {
+function parseInternalRedirect(raw: unknown): string | undefined {
   if (typeof raw !== "string" || !raw.startsWith("/") || raw.startsWith("//")) {
     return undefined;
   }

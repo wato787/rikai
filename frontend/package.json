@@ -17,13 +17,11 @@
     "@tanstack/react-query": "^5.96.2",
     "@tanstack/react-router": "^1.168.10",
     "better-auth": "^1.4.10",
-    "clsx": "^2.1.1",
     "lucide-react": "^0.562.0",
     "motion": "^12.38.0",
     "react": "^19",
     "react-dom": "^19",
-    "reactflow": "^11.11.4",
-    "tailwind-merge": "^3.5.0"
+    "reactflow": "^11.11.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.1.18",

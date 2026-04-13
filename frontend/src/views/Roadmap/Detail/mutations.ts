@@ -5,7 +5,7 @@ import type { RoadmapNodeStatus } from "@/types/roadmap";
 
 import { roadmapsDetailQueryKey } from "./queries";
 
-export type RoadmapNodePatchVariables = {
+type RoadmapNodePatchVariables = {
   nodeId: string;
   status?: RoadmapNodeStatus;
   label?: string;
@@ -14,7 +14,7 @@ export type RoadmapNodePatchVariables = {
   positionY?: number;
 };
 
-export type RoadmapNodePatchResponse = {
+type RoadmapNodePatchResponse = {
   node: {
     id: string;
     label: string;

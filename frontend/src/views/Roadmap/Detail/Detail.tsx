@@ -112,7 +112,7 @@ function RoadmapNodeComponent({ data }: NodeProps) {
   );
 }
 
-export type RoadmapDetailProps = {
+type RoadmapDetailProps = {
   roadmap: Roadmap;
   onUpdateNodeStatus: (nodeId: string, status: RoadmapNode["status"]) => void;
   onUpdateNodeContent: (nodeId: string, label: string, description: string) => Promise<void>;

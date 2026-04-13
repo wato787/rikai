@@ -5,7 +5,7 @@ import { apiDelete } from "@/lib/api-client";
 import { roadmapsDetailQueryKey } from "../Detail/queries";
 import { roadmapsListQueryKey } from "./queries";
 
-export type RoadmapDeleteVariables = { roadmapId: string };
+type RoadmapDeleteVariables = { roadmapId: string };
 
 export function roadmapDeleteMutationOptions(
   queryClient: QueryClient,

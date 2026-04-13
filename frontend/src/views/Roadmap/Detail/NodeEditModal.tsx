@@ -5,7 +5,7 @@ import { AnimatePresence, m } from "motion/react";
 import { ApiRequestError } from "@/lib/api-client";
 import type { RoadmapNode } from "@/types/roadmap";
 
-export type NodeEditModalProps = {
+type NodeEditModalProps = {
   node: RoadmapNode | null;
   onClose: () => void;
   onSave: (nodeId: string, label: string, description: string) => Promise<void>;
