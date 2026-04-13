@@ -2,7 +2,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { getRouteApi, useRouter } from "@tanstack/react-router";
 
 import { authClient } from "@/lib/auth-client";
-import { sessionQueryKey } from "@/lib/auth-session";
+import { sessionQueryOptions } from "@/lib/auth-session";
+import { navigateAfterAuth } from "@/lib/navigate-after-auth";
 
 const loginRouteApi = getRouteApi("/login");
 
@@ -24,9 +25,8 @@ export const useLogin = () => {
       }
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: sessionQueryKey });
-      const target = search.redirect ?? "/";
-      await router.navigate({ href: target });
+      await queryClient.fetchQuery(sessionQueryOptions);
+      await navigateAfterAuth(router, search.redirect);
     },
   });
 
