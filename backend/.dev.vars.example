@@ -1,0 +1,13 @@
+# コピーして `.dev.vars` にリネームし、値を埋めてください（`.dev.vars` は gitignore 済み）
+# ローカルでは同名キーが wrangler.toml の [vars] より優先されます
+
+BETTER_AUTH_SECRET=
+BETTER_AUTH_URL=http://localhost:8080
+
+FRONTEND_URL=http://localhost:5173
+
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_PRICE_PRO=
+
+GEMINI_API_KEY=
