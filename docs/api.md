@@ -52,7 +52,8 @@ Cookie: better-auth.session=<token>
 | 404 | `NOT_FOUND` | リソースが存在しない |
 | 409 | `ROADMAP_LIMIT_EXCEEDED` | 無料プランの作成上限超過 |
 | 500 | `INTERNAL_SERVER_ERROR` | サーバー内部エラー |
-| 502 | `AI_GENERATION_FAILED` | Gemini API の呼び出し失敗 |
+| 503 | `GEMINI_NOT_CONFIGURED` | `GEMINI_API_KEY` 未設定（空白のみも含む） |
+| 502 | `AI_GENERATION_FAILED` | Gemini API の呼び出し失敗・不正レスポンス |
 
 ---
 
@@ -183,7 +184,8 @@ POST /api/roadmaps
 |-----------|------|------|
 | 400 | `VALIDATION_ERROR` | topicが空・200文字超 |
 | 409 | `ROADMAP_LIMIT_EXCEEDED` | 無料プランで3件以上 |
-| 502 | `AI_GENERATION_FAILED` | Gemini APIエラー・不正なレスポンス |
+| 503 | `GEMINI_NOT_CONFIGURED` | `GEMINI_API_KEY` 未設定 |
+| 502 | `AI_GENERATION_FAILED` | Gemini API エラー・不正なレスポンス |
 
 **注意：** ページ離脱してもWorker側の処理は継続する。クライアントがレスポンスを受け取れなかった場合、生成されたロードマップはダッシュボード（一覧）から確認できる。
 

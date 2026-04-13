@@ -15,6 +15,7 @@
     "format:check": "oxfmt -c ../.oxfmtrc.json --check ./src"
   },
   "dependencies": {
+    "@google/genai": "^1.49.0",
     "better-auth": "^1.4.10",
     "drizzle-orm": "^0.45.1",
     "hono": "^4.11.3",

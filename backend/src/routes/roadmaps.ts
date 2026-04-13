@@ -118,13 +118,14 @@ app.post("/", async (c) => {
     }
   }
 
-  const apiKey = process.env.GEMINI_API_KEY ?? c.env.GEMINI_API_KEY;
+  const rawGeminiKey = process.env.GEMINI_API_KEY ?? c.env.GEMINI_API_KEY;
+  const apiKey = typeof rawGeminiKey === "string" ? rawGeminiKey.trim() : "";
   if (!apiKey) {
     return jsonError(
       c,
-      502,
-      "AI_GENERATION_FAILED",
-      "AI 生成用の設定（GEMINI_API_KEY）がありません。",
+      503,
+      "GEMINI_NOT_CONFIGURED",
+      "AI 生成は未設定です。環境変数 GEMINI_API_KEY を設定してください。",
     );
   }
 

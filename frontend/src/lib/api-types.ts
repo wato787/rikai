@@ -6,6 +6,7 @@ export type ApiErrorCode =
   | "NOT_FOUND"
   | "ROADMAP_LIMIT_EXCEEDED"
   | "INTERNAL_SERVER_ERROR"
+  | "GEMINI_NOT_CONFIGURED"
   | "AI_GENERATION_FAILED";
 
 export type ApiErrorBody = {
