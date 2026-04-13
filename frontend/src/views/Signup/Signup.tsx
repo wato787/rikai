@@ -1,36 +1,75 @@
-import { useState, type FormEvent } from "react";
+import { useReducer, type FormEvent } from "react";
 import { Link, getRouteApi } from "@tanstack/react-router";
 import { ArrowRight, CheckCircle2, Lock, Mail, User } from "lucide-react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 
 import { useSignup } from "./useSignup";
 
 const signupRouteApi = getRouteApi("/signup");
 
+type SignupFormState = {
+  name: string;
+  email: string;
+  password: string;
+  agreed: boolean;
+  agreementError: string | null;
+};
+
+type SignupFormAction =
+  | { type: "setName"; value: string }
+  | { type: "setEmail"; value: string }
+  | { type: "setPassword"; value: string }
+  | { type: "setAgreed"; value: boolean }
+  | { type: "clearAgreementError" }
+  | { type: "setAgreementError"; message: string };
+
+const initialSignupForm: SignupFormState = {
+  name: "",
+  email: "",
+  password: "",
+  agreed: false,
+  agreementError: null,
+};
+
+function signupFormReducer(state: SignupFormState, action: SignupFormAction): SignupFormState {
+  switch (action.type) {
+    case "setName":
+      return { ...state, name: action.value };
+    case "setEmail":
+      return { ...state, email: action.value };
+    case "setPassword":
+      return { ...state, password: action.value };
+    case "setAgreed":
+      return { ...state, agreed: action.value };
+    case "clearAgreementError":
+      return { ...state, agreementError: null };
+    case "setAgreementError":
+      return { ...state, agreementError: action.message };
+    default:
+      return state;
+  }
+}
+
 export const Signup = () => {
   const search = signupRouteApi.useSearch();
   const { signup, isPending, error } = useSignup();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [agreed, setAgreed] = useState(false);
-  const [agreementError, setAgreementError] = useState<string | null>(null);
+  const [form, dispatch] = useReducer(signupFormReducer, initialSignupForm);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    setAgreementError(null);
-    if (!agreed) {
-      setAgreementError("利用規約への同意が必要です。");
+    dispatch({ type: "clearAgreementError" });
+    if (!form.agreed) {
+      dispatch({ type: "setAgreementError", message: "利用規約への同意が必要です。" });
       return;
     }
-    signup({ name, email, password });
+    signup({ name: form.name, email: form.email, password: form.password });
   };
 
-  const message = agreementError ?? (error instanceof Error ? error.message : null);
+  const message = form.agreementError ?? (error instanceof Error ? error.message : null);
 
   return (
     <div className="min-h-screen bg-[#fafaf9] flex flex-col items-center justify-center p-4">
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md"
@@ -78,8 +117,8 @@ export const Signup = () => {
                   type="text"
                   autoComplete="name"
                   placeholder="山田 太郎"
-                  value={name}
-                  onChange={(ev) => setName(ev.target.value)}
+                  value={form.name}
+                  onChange={(ev) => dispatch({ type: "setName", value: ev.target.value })}
                   className="w-full pl-12 pr-4 py-3 bg-zinc-50 border border-zinc-100 rounded-2xl text-sm focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all"
                   required
                 />
@@ -104,8 +143,8 @@ export const Signup = () => {
                   type="email"
                   autoComplete="email"
                   placeholder="name@example.com"
-                  value={email}
-                  onChange={(ev) => setEmail(ev.target.value)}
+                  value={form.email}
+                  onChange={(ev) => dispatch({ type: "setEmail", value: ev.target.value })}
                   className="w-full pl-12 pr-4 py-3 bg-zinc-50 border border-zinc-100 rounded-2xl text-sm focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all"
                   required
                 />
@@ -131,8 +170,8 @@ export const Signup = () => {
                   type="password"
                   autoComplete="new-password"
                   placeholder="••••••••"
-                  value={password}
-                  onChange={(ev) => setPassword(ev.target.value)}
+                  value={form.password}
+                  onChange={(ev) => dispatch({ type: "setPassword", value: ev.target.value })}
                   className="w-full pl-12 pr-4 py-3 bg-zinc-50 border border-zinc-100 rounded-2xl text-sm focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all"
                   required
                   minLength={8}
@@ -144,8 +183,8 @@ export const Signup = () => {
               <label className="flex items-center gap-2 cursor-pointer text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
                 <input
                   type="checkbox"
-                  checked={agreed}
-                  onChange={(ev) => setAgreed(ev.target.checked)}
+                  checked={form.agreed}
+                  onChange={(ev) => dispatch({ type: "setAgreed", value: ev.target.checked })}
                   className="rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
                 />
                 <CheckCircle2 size={12} className="text-emerald-500 shrink-0" aria-hidden />
@@ -176,7 +215,7 @@ export const Signup = () => {
             </p>
           </div>
         </div>
-      </motion.div>
+      </m.div>
     </div>
   );
 };

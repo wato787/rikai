@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Loader2, X } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 
 import type { UseToggleReturn } from "@/hooks/useToggle";
 import { ApiRequestError } from "@/lib/api-client";
@@ -51,7 +51,7 @@ function CreateRoadmapModalForm({ toggle }: { toggle: UseToggleReturn }) {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-      <motion.div
+      <m.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -60,7 +60,7 @@ function CreateRoadmapModalForm({ toggle }: { toggle: UseToggleReturn }) {
         aria-hidden
       />
 
-      <motion.div
+      <m.div
         initial={{ opacity: 0, scale: 0.98, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.98, y: 10 }}
@@ -154,7 +154,7 @@ function CreateRoadmapModalForm({ toggle }: { toggle: UseToggleReturn }) {
             </button>
           </form>
         </div>
-      </motion.div>
+      </m.div>
     </div>
   );
 }

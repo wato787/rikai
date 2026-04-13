@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Plus, Trash2 } from "lucide-react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import type { RoadmapSummary } from "@/types/roadmap";
 
 import { roadmapDeleteMutationOptions } from "./mutations";
@@ -72,7 +72,7 @@ export function RoadmapList({ onOpenCreate }: RoadmapListProps) {
         ) : (
           <div className="grid grid-cols-1 gap-6">
             {roadmaps.map((roadmap, index) => (
-              <motion.div
+              <m.div
                 key={roadmap.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -124,7 +124,7 @@ export function RoadmapList({ onOpenCreate }: RoadmapListProps) {
                     <Trash2 size={20} strokeWidth={2} />
                   </button>
                 </div>
-              </motion.div>
+              </m.div>
             ))}
           </div>
         )}

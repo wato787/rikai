@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Background,
   ConnectionLineType,
@@ -14,7 +14,7 @@ import {
   useNodesState,
 } from "reactflow";
 import { ArrowLeft, CheckCircle2, Trash2 } from "lucide-react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { Link } from "@tanstack/react-router";
 import type { Roadmap, RoadmapNode } from "@/types/roadmap";
 
@@ -215,10 +215,15 @@ export function RoadmapDetail({
   const [nodes, setNodes, onNodesChange] = useNodesState(flowNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(flowEdges);
 
-  useEffect(() => {
+  const [prevRoadmapGraph, setPrevRoadmapGraph] = useState({
+    nodes: roadmap.nodes,
+    edges: roadmap.edges,
+  });
+  if (roadmap.nodes !== prevRoadmapGraph.nodes || roadmap.edges !== prevRoadmapGraph.edges) {
+    setPrevRoadmapGraph({ nodes: roadmap.nodes, edges: roadmap.edges });
     setNodes(flowNodes);
     setEdges(flowEdges);
-  }, [flowNodes, flowEdges, setEdges, setNodes]);
+  }
 
   const progress = calculateProgress();
 
@@ -266,7 +271,7 @@ export function RoadmapDetail({
               <p className="text-xl font-bold text-zinc-900 leading-none">{progress}%</p>
             </div>
             <div className="w-48 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
-              <motion.div
+              <m.div
                 initial={{ width: 0 }}
                 animate={{ width: `${progress}%` }}
                 className="h-full bg-emerald-500 rounded-full"

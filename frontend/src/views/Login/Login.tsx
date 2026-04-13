@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link, getRouteApi } from "@tanstack/react-router";
 import { ArrowRight, Lock, Mail } from "lucide-react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 
 import { useLogin } from "./useLogin";
 
@@ -22,7 +22,7 @@ export const Login = () => {
 
   return (
     <div className="min-h-screen bg-[#fafaf9] flex flex-col items-center justify-center p-4">
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md"
@@ -135,7 +135,7 @@ export const Login = () => {
             </p>
           </div>
         </div>
-      </motion.div>
+      </m.div>
     </div>
   );
 };

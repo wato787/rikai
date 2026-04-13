@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { LayoutGrid, Settings as SettingsIcon } from "lucide-react";
+import { LazyMotion, domAnimation } from "motion/react";
 import { parseAuthPageSearch, sessionQueryOptions } from "@/lib/auth-session";
 import "@/index.css";
 
@@ -34,10 +35,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootComponent() {
   return (
-    <>
+    <LazyMotion features={domAnimation} strict>
       <AppShell />
       {import.meta.env.DEV ? <TanStackRouterDevtools position="bottom-right" /> : null}
-    </>
+    </LazyMotion>
   );
 }
 

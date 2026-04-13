@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Loader2, X } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 
 import { ApiRequestError } from "@/lib/api-client";
 import type { RoadmapNode } from "@/types/roadmap";
@@ -59,7 +59,7 @@ function NodeEditModalForm({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-      <motion.div
+      <m.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -68,7 +68,7 @@ function NodeEditModalForm({
         aria-hidden
       />
 
-      <motion.div
+      <m.div
         initial={{ opacity: 0, scale: 0.98, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.98, y: 10 }}
@@ -148,7 +148,7 @@ function NodeEditModalForm({
             )}
           </button>
         </form>
-      </motion.div>
+      </m.div>
     </div>
   );
 }
