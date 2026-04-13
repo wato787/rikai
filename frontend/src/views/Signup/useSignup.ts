@@ -7,10 +7,15 @@ import { sessionQueryKey } from "@/lib/auth-session";
 const signupRouteApi = getRouteApi("/signup");
 
 type SignupCredentials = {
-  name: string;
   email: string;
   password: string;
 };
+
+/** DB の `user.name` 必須に合わせ、入力なしのときはメールの @ より前を使う */
+function defaultNameFromEmail(email: string): string {
+  const local = email.trim().split("@")[0]?.trim();
+  return local && local.length > 0 ? local : "ユーザー";
+}
 
 export const useSignup = () => {
   const queryClient = useQueryClient();
@@ -18,7 +23,8 @@ export const useSignup = () => {
   const search = signupRouteApi.useSearch();
 
   const mutation = useMutation({
-    mutationFn: async ({ name, email, password }: SignupCredentials) => {
+    mutationFn: async ({ email, password }: SignupCredentials) => {
+      const name = defaultNameFromEmail(email);
       const { error } = await authClient.signUp.email({ name, email, password });
       if (error) {
         throw new Error(error.message ?? "登録に失敗しました。");

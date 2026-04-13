@@ -1,6 +1,6 @@
 import { useReducer, type FormEvent } from "react";
 import { Link, getRouteApi } from "@tanstack/react-router";
-import { ArrowRight, CheckCircle2, Lock, Mail, User } from "lucide-react";
+import { ArrowRight, CheckCircle2, Lock, Mail } from "lucide-react";
 import { m } from "motion/react";
 
 import { useSignup } from "./useSignup";
@@ -8,7 +8,6 @@ import { useSignup } from "./useSignup";
 const signupRouteApi = getRouteApi("/signup");
 
 type SignupFormState = {
-  name: string;
   email: string;
   password: string;
   agreed: boolean;
@@ -16,7 +15,6 @@ type SignupFormState = {
 };
 
 type SignupFormAction =
-  | { type: "setName"; value: string }
   | { type: "setEmail"; value: string }
   | { type: "setPassword"; value: string }
   | { type: "setAgreed"; value: boolean }
@@ -24,7 +22,6 @@ type SignupFormAction =
   | { type: "setAgreementError"; message: string };
 
 const initialSignupForm: SignupFormState = {
-  name: "",
   email: "",
   password: "",
   agreed: false,
@@ -33,8 +30,6 @@ const initialSignupForm: SignupFormState = {
 
 function signupFormReducer(state: SignupFormState, action: SignupFormAction): SignupFormState {
   switch (action.type) {
-    case "setName":
-      return { ...state, name: action.value };
     case "setEmail":
       return { ...state, email: action.value };
     case "setPassword":
@@ -62,7 +57,7 @@ export const Signup = () => {
       dispatch({ type: "setAgreementError", message: "利用規約への同意が必要です。" });
       return;
     }
-    signup({ name: form.name, email: form.email, password: form.password });
+    signup({ email: form.email, password: form.password });
   };
 
   const message = form.agreementError ?? (error instanceof Error ? error.message : null);
@@ -99,32 +94,6 @@ export const Signup = () => {
           ) : null}
 
           <form className="space-y-6" onSubmit={handleSubmit}>
-            <div className="space-y-2">
-              <label
-                htmlFor="signup-name"
-                className="text-xs font-bold text-zinc-500 uppercase tracking-widest ml-1"
-              >
-                お名前
-              </label>
-              <div className="relative group">
-                <User
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-300 group-focus-within:text-emerald-500 transition-colors pointer-events-none"
-                  size={18}
-                  aria-hidden
-                />
-                <input
-                  id="signup-name"
-                  type="text"
-                  autoComplete="name"
-                  placeholder="山田 太郎"
-                  value={form.name}
-                  onChange={(ev) => dispatch({ type: "setName", value: ev.target.value })}
-                  className="w-full pl-12 pr-4 py-3 bg-zinc-50 border border-zinc-100 rounded-2xl text-sm focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all"
-                  required
-                />
-              </div>
-            </div>
-
             <div className="space-y-2">
               <label
                 htmlFor="signup-email"
