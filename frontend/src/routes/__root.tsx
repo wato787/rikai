@@ -84,7 +84,7 @@ function AppShell() {
             }`}
           >
             <SettingsIcon size={18} />
-            <span>設定</span>
+            <span>アカウント</span>
           </Link>
         </nav>
 
