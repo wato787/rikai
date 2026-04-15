@@ -81,6 +81,17 @@ type GenerateRoadmapOptions = {
   model?: string;
 };
 
+export type GeminiGenerateFailureKind =
+  | "transient_unavailable"
+  | "blocked"
+  | "invalid_response"
+  | "other";
+
+export type GenerateRoadmapResult = {
+  payload: GeminiRoadmapPayload | null;
+  failureKind?: GeminiGenerateFailureKind;
+};
+
 function parseRoadmapPayload(text: string): GeminiRoadmapPayload | null {
   const trimmed = text.trim();
   let data: unknown;
@@ -132,6 +143,21 @@ function logGeminiFailure(context: string, err: unknown): void {
   console.error(`Gemini: ${context}`, msg);
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function isRetryableGeminiError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  // Gemini の混雑時は 503/429 系の文字列がメッセージに含まれる。
+  return /503|429|UNAVAILABLE|RESOURCE_EXHAUSTED|high demand/i.test(msg);
+}
+
+const MAX_GENERATE_ATTEMPTS = 3;
+const RETRY_BASE_DELAY_MS = 1_200;
+
 /**
  * generateContent（Structured Outputs / `@google/genai`）。
  * 失敗時は null（呼び出し側で 502 `AI_GENERATION_FAILED` にマッピング）。
@@ -140,7 +166,7 @@ export async function generateRoadmapWithGemini(
   apiKey: string,
   topic: string,
   options?: GenerateRoadmapOptions,
-): Promise<GeminiRoadmapPayload | null> {
+): Promise<GenerateRoadmapResult> {
   const model =
     options?.model?.trim() ||
     (typeof process.env.GEMINI_MODEL === "string" && process.env.GEMINI_MODEL.trim()) ||
@@ -153,34 +179,49 @@ export async function generateRoadmapWithGemini(
     httpOptions: { timeout: GENERATE_CONTENT_TIMEOUT_MS },
   });
 
-  try {
-    const response = await ai.models.generateContent({
-      model,
-      contents: userPrompt,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        temperature: 0.4,
-        responseMimeType: "application/json",
-        responseJsonSchema: JSON.parse(JSON.stringify(ROADMAP_RESPONSE_JSON_SCHEMA)),
-      },
-    });
-
-    if (response.promptFeedback?.blockReason) {
-      console.error("Gemini: prompt blocked", response.promptFeedback.blockReason);
-      return null;
-    }
-
-    const text = response.text;
-    if (typeof text !== "string" || text.trim().length === 0) {
-      console.error("Gemini: empty text in response", {
-        candidates: response.candidates?.length ?? 0,
+  for (let attempt = 1; attempt <= MAX_GENERATE_ATTEMPTS; attempt++) {
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents: userPrompt,
+        config: {
+          systemInstruction: SYSTEM_INSTRUCTION,
+          temperature: 0.4,
+          responseMimeType: "application/json",
+          responseJsonSchema: JSON.parse(JSON.stringify(ROADMAP_RESPONSE_JSON_SCHEMA)),
+        },
       });
-      return null;
-    }
 
-    return parseRoadmapPayload(text);
-  } catch (err) {
-    logGeminiFailure("generateContent failed", err);
-    return null;
+      if (response.promptFeedback?.blockReason) {
+        console.error("Gemini: prompt blocked", response.promptFeedback.blockReason);
+        return { payload: null, failureKind: "blocked" };
+      }
+
+      const text = response.text;
+      if (typeof text !== "string" || text.trim().length === 0) {
+        console.error("Gemini: empty text in response", {
+          candidates: response.candidates?.length ?? 0,
+        });
+        return { payload: null, failureKind: "invalid_response" };
+      }
+
+      const parsed = parseRoadmapPayload(text);
+      if (!parsed) {
+        return { payload: null, failureKind: "invalid_response" };
+      }
+      return { payload: parsed };
+    } catch (err) {
+      const retryable = isRetryableGeminiError(err);
+      logGeminiFailure(`generateContent failed (attempt ${attempt}/${MAX_GENERATE_ATTEMPTS})`, err);
+
+      if (!retryable) {
+        return { payload: null, failureKind: "other" };
+      }
+      if (attempt >= MAX_GENERATE_ATTEMPTS) {
+        return { payload: null, failureKind: "transient_unavailable" };
+      }
+      await sleep(RETRY_BASE_DELAY_MS * attempt);
+    }
   }
+  return { payload: null, failureKind: "transient_unavailable" };
 }

@@ -169,10 +169,19 @@ app.post("/", async (c) => {
   }
 
   const geminiModel = process.env.GEMINI_MODEL ?? c.env.GEMINI_MODEL;
-  const payload = await generateRoadmapWithGemini(apiKey, topic, {
+  const result = await generateRoadmapWithGemini(apiKey, topic, {
     model: geminiModel,
   });
+  const payload = result.payload;
   if (!payload || payload.nodes.length === 0) {
+    if (result.failureKind === "transient_unavailable") {
+      return jsonError(
+        c,
+        503,
+        "AI_SERVICE_UNAVAILABLE",
+        "AI サービスが混雑しています。少し時間をおいて再試行してください。",
+      );
+    }
     return jsonError(
       c,
       502,

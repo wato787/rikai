@@ -10,7 +10,8 @@ type ApiErrorCode =
   | "AI_GENERATION_LIMIT_EXCEEDED"
   | "INTERNAL_SERVER_ERROR"
   | "GEMINI_NOT_CONFIGURED"
-  | "AI_GENERATION_FAILED";
+  | "AI_GENERATION_FAILED"
+  | "AI_SERVICE_UNAVAILABLE";
 
 export function jsonError(
   c: Context,
