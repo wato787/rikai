@@ -1,4 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import {
   createRootRouteWithContext,
   Link,
@@ -7,10 +8,14 @@ import {
   useRouterState,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-import { LayoutGrid, Settings as SettingsIcon } from "lucide-react";
+import { LayoutGrid, PanelLeftClose, PanelLeftOpen, Settings as SettingsIcon } from "lucide-react";
 import { LazyMotion, domAnimation } from "motion/react";
 import { parseAuthPageSearch, sessionQueryOptions } from "@/lib/auth-session";
 import "@/index.css";
+
+const SIDEBAR_OPEN_KEY = "rikai.sidebarOpen";
+/** 旧キー（移行用） */
+const SIDEBAR_COLLAPSED_LEGACY_KEY = "rikai.sidebarCollapsed";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   beforeLoad: async ({ context, location }) => {
@@ -48,50 +53,132 @@ function AppShell() {
   const isRoadmapsSection = pathname === "/" || pathname.startsWith("/roadmap/");
   const isSettings = pathname === "/settings";
 
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(SIDEBAR_OPEN_KEY);
+      if (raw === "0") {
+        setSidebarOpen(false);
+      } else if (raw === "1") {
+        setSidebarOpen(true);
+      } else {
+        const legacy = localStorage.getItem(SIDEBAR_COLLAPSED_LEGACY_KEY);
+        if (legacy === "1" || legacy === "true") {
+          setSidebarOpen(false);
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const toggleSidebar = () => {
+    setSidebarOpen((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(SIDEBAR_OPEN_KEY, next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
+
   if (isAuthPage) {
     return <Outlet />;
   }
 
   return (
     <div className="min-h-screen bg-[#fafaf9] font-sans text-zinc-800 selection:bg-emerald-100 selection:text-emerald-900 flex">
-      <aside className="w-64 bg-white/50 backdrop-blur-md flex flex-col sticky top-0 h-screen shrink-0 z-50">
-        <div className="h-24 flex items-center px-10">
-          <Link to="/" className="flex items-center gap-3 cursor-default">
-            <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-sm shadow-emerald-600/20">
-              R
-            </div>
-            <span className="font-bold text-xl tracking-tight text-zinc-900">Rikai</span>
-          </Link>
-        </div>
-
-        <nav className="flex-1 px-6 py-4 space-y-2">
+      <aside
+        id="app-sidebar"
+        className={`bg-white/50 backdrop-blur-md flex flex-col sticky top-0 h-screen shrink-0 z-50 border-r border-zinc-100/50 transition-all duration-300 motion-reduce:transition-none ${
+          sidebarOpen ? "w-64" : "w-20"
+        }`}
+      >
+        <div className="flex h-24 shrink-0 items-center justify-between px-6">
           <Link
             to="/"
-            className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-bold rounded-xl transition-all ${
+            className={`flex min-w-0 cursor-default items-center gap-3 overflow-hidden rounded-lg outline-none transition-all duration-300 motion-reduce:transition-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 ${
+              sidebarOpen ? "w-auto opacity-100" : "pointer-events-none w-0 opacity-0"
+            }`}
+            aria-hidden={!sidebarOpen}
+            tabIndex={sidebarOpen ? undefined : -1}
+            aria-label="Rikai ホーム"
+            title="ホーム"
+          >
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-lg font-bold text-white shadow-sm shadow-emerald-600/20">
+              R
+            </div>
+            <span className="whitespace-nowrap text-xl font-bold tracking-tight text-zinc-900">
+              Rikai
+            </span>
+          </Link>
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            aria-expanded={sidebarOpen}
+            aria-controls="app-sidebar"
+            aria-label={sidebarOpen ? "サイドバーを折りたたむ" : "サイドバーを展開"}
+            className="shrink-0 rounded-xl p-2 text-zinc-400 transition-all hover:bg-zinc-100/50 hover:text-zinc-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+          >
+            {sidebarOpen ? (
+              <PanelLeftClose size={20} aria-hidden />
+            ) : (
+              <PanelLeftOpen size={20} aria-hidden />
+            )}
+          </button>
+        </div>
+
+        <nav className="flex-1 space-y-2 px-4 py-4">
+          <Link
+            to="/"
+            title={sidebarOpen ? undefined : "ロードマップ"}
+            aria-label={sidebarOpen ? undefined : "ロードマップ"}
+            className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 ${
               isRoadmapsSection
-                ? "text-emerald-700 bg-emerald-50"
-                : "text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100/50"
+                ? "bg-emerald-50 text-emerald-700"
+                : "text-zinc-400 hover:bg-zinc-100/50 hover:text-zinc-600"
             }`}
           >
-            <LayoutGrid size={18} />
-            <span>ロードマップ</span>
+            <LayoutGrid size={18} className="shrink-0" aria-hidden />
+            <span
+              className={`overflow-hidden whitespace-nowrap transition-all duration-300 motion-reduce:transition-none ${
+                sidebarOpen ? "w-auto opacity-100" : "w-0 opacity-0"
+              }`}
+            >
+              ロードマップ
+            </span>
           </Link>
           <Link
             to="/settings"
-            className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-bold rounded-xl transition-all ${
+            title={sidebarOpen ? undefined : "アカウント設定"}
+            aria-label={sidebarOpen ? undefined : "アカウント設定"}
+            className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 ${
               isSettings
-                ? "text-emerald-700 bg-emerald-50"
-                : "text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100/50"
+                ? "bg-emerald-50 text-emerald-700"
+                : "text-zinc-400 hover:bg-zinc-100/50 hover:text-zinc-600"
             }`}
           >
-            <SettingsIcon size={18} />
-            <span>アカウント</span>
+            <SettingsIcon size={18} className="shrink-0" aria-hidden />
+            <span
+              className={`overflow-hidden whitespace-nowrap transition-all duration-300 motion-reduce:transition-none ${
+                sidebarOpen ? "w-auto opacity-100" : "w-0 opacity-0"
+              }`}
+            >
+              アカウント
+            </span>
           </Link>
         </nav>
 
-        <div className="p-8">
-          <div className="p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100/50">
-            <p className="text-[10px] font-bold text-emerald-800 uppercase tracking-widest mb-1">
+        <div
+          className={`shrink-0 transition-all duration-300 motion-reduce:transition-none ${
+            sidebarOpen ? "p-6 opacity-100" : "h-0 overflow-hidden p-0 opacity-0"
+          }`}
+        >
+          <div className="rounded-2xl border border-emerald-100/50 bg-emerald-50/50 p-4">
+            <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-emerald-800">
               現在のプラン
             </p>
             <p className="text-xs font-bold text-zinc-900">フリープラン</p>
