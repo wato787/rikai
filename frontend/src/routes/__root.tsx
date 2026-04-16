@@ -1,5 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   createRootRouteWithContext,
   Link,
@@ -21,8 +21,18 @@ import { parseAuthPageSearch, sessionQueryOptions } from "@/lib/auth-session";
 import "@/index.css";
 
 const SIDEBAR_OPEN_KEY = "rikai.sidebarOpen";
-/** 旧キー（移行用） */
-const SIDEBAR_COLLAPSED_LEGACY_KEY = "rikai.sidebarCollapsed";
+
+function readSidebarOpenFromStorage(): boolean {
+  if (typeof window === "undefined") {
+    return true;
+  }
+  try {
+    const raw = localStorage.getItem(SIDEBAR_OPEN_KEY);
+    return raw !== "0";
+  } catch {
+    return true;
+  }
+}
 
 const planTooltipLabel = (
   <span className="block max-w-[14rem] text-pretty">
@@ -69,25 +79,7 @@ function AppShell() {
   const isRoadmapsSection = pathname === "/" || pathname.startsWith("/roadmap/");
   const isSettings = pathname === "/settings";
 
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(SIDEBAR_OPEN_KEY);
-      if (raw === "0") {
-        setSidebarOpen(false);
-      } else if (raw === "1") {
-        setSidebarOpen(true);
-      } else {
-        const legacy = localStorage.getItem(SIDEBAR_COLLAPSED_LEGACY_KEY);
-        if (legacy === "1" || legacy === "true") {
-          setSidebarOpen(false);
-        }
-      }
-    } catch {
-      /* ignore */
-    }
-  }, []);
+  const [sidebarOpen, setSidebarOpen] = useState(() => readSidebarOpenFromStorage());
 
   const toggleSidebar = () => {
     setSidebarOpen((prev) => {
