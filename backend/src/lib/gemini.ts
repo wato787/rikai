@@ -81,13 +81,13 @@ type GenerateRoadmapOptions = {
   model?: string;
 };
 
-export type GeminiGenerateFailureKind =
+type GeminiGenerateFailureKind =
   | "transient_unavailable"
   | "blocked"
   | "invalid_response"
   | "other";
 
-export type GenerateRoadmapResult = {
+type GenerateRoadmapResult = {
   payload: GeminiRoadmapPayload | null;
   failureKind?: GeminiGenerateFailureKind;
 };

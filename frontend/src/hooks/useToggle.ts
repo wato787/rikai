@@ -4,7 +4,6 @@ export type UseToggleReturn = {
   isOpen: boolean;
   handleOpen: () => void;
   handleClose: () => void;
-  handleToggle: () => void;
 };
 
 /**
@@ -15,7 +14,6 @@ export function useToggle(initialOpen = false): UseToggleReturn {
 
   const handleOpen = useCallback(() => setOpen(true), []);
   const handleClose = useCallback(() => setOpen(false), []);
-  const handleToggle = useCallback(() => setOpen((v) => !v), []);
 
-  return { isOpen, handleOpen, handleClose, handleToggle };
+  return { isOpen, handleOpen, handleClose };
 }

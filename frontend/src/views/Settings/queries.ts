@@ -4,7 +4,7 @@ import { apiGet } from "@/lib/api-client";
 
 export const subscriptionMeQueryKey = ["subscriptions", "me"] as const;
 
-export type SubscriptionMeJson = {
+type SubscriptionMeJson = {
   subscription: {
     plan: "free" | "pro";
     status: string;

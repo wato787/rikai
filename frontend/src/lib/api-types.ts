@@ -1,5 +1,5 @@
 /** docs/api.md の error.code に沿った代表値 */
-export type ApiErrorCode =
+type ApiErrorCode =
   | "VALIDATION_ERROR"
   | "UNAUTHORIZED"
   | "FORBIDDEN"
