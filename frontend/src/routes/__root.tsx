@@ -38,7 +38,7 @@ const planTooltipLabel = (
   <span className="block max-w-[14rem] text-pretty">
     <span className="block text-[11px] font-medium text-zinc-500">現在のプラン</span>
     <span className="mt-1 block text-sm font-semibold tracking-tight text-zinc-900">
-      フリープラン
+      クレジット制
     </span>
   </span>
 );
@@ -237,14 +237,14 @@ function AppShell() {
                 <button
                   type="button"
                   className="flex touch-manipulation rounded-lg p-2 text-emerald-600/90 transition-colors duration-200 hover:bg-emerald-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/35"
-                  aria-label="現在のプラン: フリープラン"
+                  aria-label="現在のプラン: クレジット制"
                 >
                   <Sparkles size={17} strokeWidth={1.75} aria-hidden />
                 </button>
               </SoftTooltip>
               <div className="min-w-0 flex-1">
                 <p className="text-[11px] font-medium text-zinc-500">現在のプラン</p>
-                <p className="text-sm font-semibold tracking-tight text-zinc-900">フリープラン</p>
+                <p className="text-sm font-semibold tracking-tight text-zinc-900">クレジット制</p>
               </div>
             </div>
           ) : (
@@ -252,7 +252,7 @@ function AppShell() {
               <button
                 type="button"
                 className="flex h-10 w-10 touch-manipulation items-center justify-center rounded-xl border border-zinc-200/70 bg-white/85 text-emerald-600/90 shadow-sm shadow-zinc-900/5 ring-1 ring-zinc-950/[0.04] transition-colors duration-200 hover:bg-emerald-50/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/35"
-                aria-label="現在のプラン: フリープラン"
+                aria-label="現在のプラン: クレジット制"
               >
                 <Sparkles size={19} strokeWidth={1.75} aria-hidden />
               </button>

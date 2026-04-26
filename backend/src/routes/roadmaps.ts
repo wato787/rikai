@@ -10,10 +10,9 @@ import { generateRoadmapWithGemini } from "../lib/gemini";
 import { ipRateLimit } from "../lib/rate-limit";
 import { jsonError } from "../lib/api-error";
 import {
-  currentAiUsageMonthKey,
-  FREE_AI_GENERATIONS_PER_MONTH,
-  FREE_ROADMAP_MAX,
-  PRO_AI_GENERATIONS_PER_MONTH,
+  CREDIT_SCHEMA_VERSION,
+  INITIAL_FREE_CREDITS,
+  ROADMAP_GENERATION_CREDIT_COST,
 } from "../lib/plan-limits";
 import { requireAuth } from "../middleware/auth";
 import type { AppEnv } from "../types/hono-env";
@@ -169,7 +168,6 @@ app.post("/", createRoadmapRateLimit, async (c) => {
 
   const db = getDb(c.env.rikai_db);
   const now = Date.now();
-  const usageMonth = currentAiUsageMonthKey();
 
   let [sub] = await db
     .select()
@@ -182,8 +180,10 @@ app.post("/", createRoadmapRateLimit, async (c) => {
     await db.insert(subscriptions).values({
       id: subId,
       userId,
-      plan: "free",
-      status: "inactive",
+      plan: "free", // 互換維持のため残す（クレジット制では実質未使用）
+      status: "active",
+      aiGenerationsUsed: INITIAL_FREE_CREDITS,
+      aiUsageMonth: CREDIT_SCHEMA_VERSION,
       createdAt: now,
       updatedAt: now,
     });
@@ -194,33 +194,16 @@ app.post("/", createRoadmapRateLimit, async (c) => {
     return jsonError(c, 500, "INTERNAL_SERVER_ERROR", "サブスクリプションの初期化に失敗しました。");
   }
 
-  const isPro = sub.plan === "pro";
-  if (!isPro) {
-    const [{ c: roadmapCount }] = await db
-      .select({ c: count() })
-      .from(roadmaps)
-      .where(eq(roadmaps.userId, userId));
-    if (roadmapCount >= FREE_ROADMAP_MAX) {
-      return jsonError(
-        c,
-        409,
-        "ROADMAP_LIMIT_EXCEEDED",
-        `無料プランの作成上限（${FREE_ROADMAP_MAX}件）に達しています。`,
-      );
-    }
-  }
-
-  const usedThisMonth =
-    sub.aiUsageMonth === usageMonth ? Math.max(0, sub.aiGenerationsUsed ?? 0) : 0;
-  const aiMonthlyLimit = isPro ? PRO_AI_GENERATIONS_PER_MONTH : FREE_AI_GENERATIONS_PER_MONTH;
-  if (usedThisMonth >= aiMonthlyLimit) {
+  const remainingCredits =
+    sub.aiUsageMonth === CREDIT_SCHEMA_VERSION
+      ? Math.max(0, sub.aiGenerationsUsed ?? 0)
+      : Math.max(0, INITIAL_FREE_CREDITS - Math.max(0, sub.aiGenerationsUsed ?? 0));
+  if (remainingCredits < ROADMAP_GENERATION_CREDIT_COST) {
     return jsonError(
       c,
       403,
       "AI_GENERATION_LIMIT_EXCEEDED",
-      isPro
-        ? `今月の AI 生成上限（${aiMonthlyLimit}回）に達しています。来月以降に再度お試しください。`
-        : `無料プランでは月${FREE_AI_GENERATIONS_PER_MONTH}回まで AI でロードマップを生成できます。Pro にアップグレードすると月${PRO_AI_GENERATIONS_PER_MONTH}回まで利用できます。`,
+      "クレジットが不足しています。クレジットを追加してください。",
     );
   }
 
@@ -332,7 +315,7 @@ app.post("/", createRoadmapRateLimit, async (c) => {
     n.positionY = pos?.y ?? 0;
   }
 
-  const nextAiUsed = usedThisMonth + 1;
+  const nextRemainingCredits = Math.max(0, remainingCredits - ROADMAP_GENERATION_CREDIT_COST);
 
   try {
     await db.batch([
@@ -349,8 +332,8 @@ app.post("/", createRoadmapRateLimit, async (c) => {
       db
         .update(subscriptions)
         .set({
-          aiGenerationsUsed: nextAiUsed,
-          aiUsageMonth: usageMonth,
+          aiGenerationsUsed: nextRemainingCredits,
+          aiUsageMonth: CREDIT_SCHEMA_VERSION,
           updatedAt: now,
         })
         .where(eq(subscriptions.userId, userId)),

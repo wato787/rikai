@@ -6,14 +6,9 @@ export const subscriptionMeQueryKey = ["subscriptions", "me"] as const;
 
 type SubscriptionMeJson = {
   subscription: {
-    plan: "free" | "pro";
-    status: string;
-    currentPeriodEnd: number | null;
-    aiUsage: {
-      usedThisMonth: number;
-      limitThisMonth: number;
-      month: string;
-    };
+    creditModel: "credits";
+    remainingCredits: number;
+    costPerRoadmapGeneration: number;
   };
 };
 

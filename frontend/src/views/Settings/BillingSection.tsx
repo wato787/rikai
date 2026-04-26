@@ -29,8 +29,8 @@ export function BillingSection() {
   });
 
   const sub = data?.subscription;
-  const isPro = sub?.plan === "pro";
-  const ai = sub?.aiUsage;
+  const remainingCredits = sub?.remainingCredits ?? 0;
+  const costPerGeneration = sub?.costPerRoadmapGeneration ?? 1;
 
   return (
     <div className="bg-white border border-zinc-100 rounded-2xl p-8 shadow-sm space-y-8">
@@ -40,33 +40,27 @@ export function BillingSection() {
             <Shield size={24} />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-bold text-emerald-900">
-              {isPro ? "Pro プラン" : "フリープラン"}
-            </p>
+            <p className="text-sm font-bold text-emerald-900">クレジット制</p>
             <p className="text-xs text-emerald-700/70 font-medium">
               {isPending
                 ? "読み込み中…"
-                : isPro
-                  ? "AI ロードマップ生成を多めの枠でご利用いただけます。"
-                  : "無料枠の範囲でご利用いただけます。"}
+                : `ロードマップ生成1回あたり ${costPerGeneration} クレジットを消費します。`}
             </p>
-            {!isPending && ai ? (
+            {!isPending ? (
               <p className="text-[11px] text-emerald-800/80 font-bold mt-2 tabular-nums">
-                今月の AI 生成: {ai.usedThisMonth} / {ai.limitThisMonth} 回
+                残りクレジット: {remainingCredits}
               </p>
             ) : null}
           </div>
         </div>
-        {!isPro ? (
-          <button
-            type="button"
-            disabled={checkoutMutation.isPending || isPending}
-            onClick={() => checkoutMutation.mutate()}
-            className="px-6 py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 transition-all shadow-md shadow-emerald-600/20 active:scale-95 shrink-0 disabled:opacity-50 disabled:pointer-events-none"
-          >
-            {checkoutMutation.isPending ? "準備中…" : "アップグレード"}
-          </button>
-        ) : null}
+        <button
+          type="button"
+          disabled={checkoutMutation.isPending || isPending}
+          onClick={() => checkoutMutation.mutate()}
+          className="px-6 py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 transition-all shadow-md shadow-emerald-600/20 active:scale-95 shrink-0 disabled:opacity-50 disabled:pointer-events-none"
+        >
+          {checkoutMutation.isPending ? "準備中…" : "クレジットを追加（準備中）"}
+        </button>
       </div>
 
       <div className="space-y-4 pt-4">

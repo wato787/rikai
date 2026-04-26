@@ -1,13 +1,8 @@
-/** 無料プラン: 保持できるロードマップの上限 */
-export const FREE_ROADMAP_MAX = 3;
+/** 初期付与する無料クレジット数 */
+export const INITIAL_FREE_CREDITS = 3;
 
-/** 無料プラン: 暦月（UTC）あたりの AI ロードマップ生成回数 */
-export const FREE_AI_GENERATIONS_PER_MONTH = 3;
+/** ロードマップ1件生成あたりの消費クレジット */
+export const ROADMAP_GENERATION_CREDIT_COST = 1;
 
-/** Pro: 暦月（UTC）あたりの AI 生成上限（実質十分な枠） */
-export const PRO_AI_GENERATIONS_PER_MONTH = 100;
-
-/** 現在の利用集計用キー `YYYY-MM`（UTC） */
-export function currentAiUsageMonthKey(): string {
-  return new Date().toISOString().slice(0, 7);
-}
+/** クレジット制へ移行済みかを示す内部バージョン */
+export const CREDIT_SCHEMA_VERSION = "credits_v1";
