@@ -144,6 +144,207 @@ function RoadmapNodeComponent({ data, id }: NodeProps) {
   );
 }
 
+type DetailViewToggleProps = {
+  viewMode: DetailViewMode;
+  onChangeViewMode: (nextMode: DetailViewMode) => void;
+};
+
+function DetailViewToggle({ viewMode, onChangeViewMode }: DetailViewToggleProps) {
+  return (
+    <div className="inline-flex rounded-lg border border-zinc-200 bg-white p-1 shadow-sm">
+      <button
+        type="button"
+        onClick={() => onChangeViewMode("list")}
+        className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+          viewMode === "list"
+            ? "bg-zinc-900 text-white"
+            : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
+        }`}
+        aria-pressed={viewMode === "list"}
+      >
+        <List size={14} aria-hidden />
+        リスト
+      </button>
+      <button
+        type="button"
+        onClick={() => onChangeViewMode("flow")}
+        className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+          viewMode === "flow"
+            ? "bg-zinc-900 text-white"
+            : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
+        }`}
+        aria-pressed={viewMode === "flow"}
+      >
+        <Network size={14} aria-hidden />
+        フロー
+      </button>
+    </div>
+  );
+}
+
+type FlowViewProps = {
+  nodes: Node[];
+  edges: Edge[];
+  nodeTypes: { roadmapNode: typeof RoadmapNodeComponent };
+  onNodesChange: (changes: NodeChange[]) => void;
+  onEdgesChange: (changes: EdgeChange[]) => void;
+  onNodeClick: (_event: MouseEvent, node: Node) => void;
+  onUpdateNodePosition: (nodeId: string, x: number, y: number) => void;
+  onPaneClick: () => void;
+};
+
+function FlowView({
+  nodes,
+  edges,
+  nodeTypes,
+  onNodesChange,
+  onEdgesChange,
+  onNodeClick,
+  onUpdateNodePosition,
+  onPaneClick,
+}: FlowViewProps) {
+  return (
+    <div className="group relative flex h-[min(75dvh,48rem)] min-h-[28rem] w-full min-w-0 shrink-0 overflow-hidden rounded-lg border border-zinc-100 bg-white shadow-inner">
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onNodeClick={onNodeClick}
+        onNodeDragStop={(_, node) => {
+          const { x, y } = node.position;
+          if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+          onUpdateNodePosition(node.id, x, y);
+        }}
+        onPaneClick={onPaneClick}
+        nodeTypes={nodeTypes}
+        fitView
+        fitViewOptions={{ padding: 0.35, maxZoom: 1.25 }}
+        minZoom={0.35}
+        maxZoom={2}
+        className="h-full w-full bg-[#fafafa]"
+        proOptions={{ hideAttribution: true }}
+      >
+        <Background color="#e4e4e7" gap={24} size={1} />
+        <Controls
+          className="!overflow-hidden !rounded-md !border-zinc-100 !bg-white !shadow-xl"
+          showInteractive={false}
+        />
+      </ReactFlow>
+    </div>
+  );
+}
+
+type ListViewProps = {
+  roadmap: Roadmap;
+  selectedListNode: RoadmapNode | null;
+  onSelectNode: (nodeId: string) => void;
+  onUpdateNodeStatus: (nodeId: string, status: RoadmapNode["status"]) => void;
+};
+
+function ListView({ roadmap, selectedListNode, onSelectNode, onUpdateNodeStatus }: ListViewProps) {
+  return (
+    <div className="h-[min(75dvh,48rem)] min-h-[28rem] w-full overflow-hidden rounded-lg border border-zinc-200 bg-white">
+      <div className="flex h-full min-h-0">
+        <div className="h-full w-[min(38%,22rem)] min-w-[18rem] overflow-y-auto border-r border-zinc-200">
+          {roadmap.nodes.map((node, index) => {
+            const isActive = selectedListNode?.id === node.id;
+            return (
+              <button
+                key={node.id}
+                type="button"
+                onClick={() => onSelectNode(node.id)}
+                className={`w-full border-b border-zinc-100 px-4 py-3 text-left transition-colors ${
+                  isActive ? "bg-zinc-100" : "hover:bg-zinc-50"
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 text-xs font-semibold text-zinc-400">{index + 1}.</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-zinc-900">{node.label}</p>
+                    <p className="mt-1 truncate text-xs text-zinc-500">
+                      {node.description || "説明なし"}
+                    </p>
+                  </div>
+                  <span
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide ${getStatusChipClass(node.status)}`}
+                  >
+                    {getStatusLabel(node.status)}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {selectedListNode ? (
+            <div className="flex min-h-full flex-col">
+              <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4">
+                <span
+                  className={`rounded-full px-2 py-1 text-[10px] font-bold tracking-wide uppercase ${getStatusChipClass(selectedListNode.status)}`}
+                >
+                  {getStatusLabel(selectedListNode.status)}
+                </span>
+                <div className="inline-flex rounded-md border border-zinc-200 bg-white p-1">
+                  {(
+                    [
+                      {
+                        id: "not_started",
+                        label: "未着手",
+                        icon: <Circle size={12} aria-hidden />,
+                      },
+                      {
+                        id: "in_progress",
+                        label: "進行中",
+                        icon: <Loader2 size={12} className="animate-spin" aria-hidden />,
+                      },
+                      {
+                        id: "completed",
+                        label: "完了",
+                        icon: <CheckCircle2 size={12} aria-hidden />,
+                      },
+                    ] as const
+                  ).map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => onUpdateNodeStatus(selectedListNode.id, item.id)}
+                      className={`inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] font-semibold transition-colors ${
+                        selectedListNode.status === item.id
+                          ? item.id === "completed"
+                            ? "bg-emerald-500 text-white"
+                            : item.id === "in_progress"
+                              ? "bg-amber-500 text-white"
+                              : "bg-zinc-900 text-white"
+                          : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
+                      }`}
+                    >
+                      {item.icon}
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex-1 px-6 py-5">
+                <h2 className="text-xl font-bold tracking-tight text-zinc-900">
+                  {selectedListNode.label}
+                </h2>
+                <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-zinc-600">
+                  {selectedListNode.description || "説明はまだありません。"}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex h-full items-center justify-center text-sm text-zinc-400">
+              ステップがありません
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 type RoadmapDetailProps = {
   roadmap: Roadmap;
   /** TanStack Query の dataUpdatedAt。キャッシュがネットワークで更新されたときだけ進む（楽観更新では不変） */
@@ -314,176 +515,29 @@ export function RoadmapDetail({
             </div>
 
             <div className="flex items-center">
-              <div className="inline-flex rounded-lg border border-zinc-200 bg-white p-1 shadow-sm">
-                <button
-                  type="button"
-                  onClick={() => handleChangeViewMode("list")}
-                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    viewMode === "list"
-                      ? "bg-zinc-900 text-white"
-                      : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
-                  }`}
-                  aria-pressed={viewMode === "list"}
-                >
-                  <List size={14} aria-hidden />
-                  リスト
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleChangeViewMode("flow")}
-                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    viewMode === "flow"
-                      ? "bg-zinc-900 text-white"
-                      : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
-                  }`}
-                  aria-pressed={viewMode === "flow"}
-                >
-                  <Network size={14} aria-hidden />
-                  フロー
-                </button>
-              </div>
+              <DetailViewToggle viewMode={viewMode} onChangeViewMode={handleChangeViewMode} />
             </div>
           </div>
         </div>
 
         {viewMode === "flow" ? (
-          <div className="group relative flex h-[min(75dvh,48rem)] min-h-[28rem] w-full min-w-0 shrink-0 overflow-hidden rounded-lg border border-zinc-100 bg-white shadow-inner">
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onNodeClick={onNodeClick}
-              onNodeDragStop={(_, node) => {
-                const { x, y } = node.position;
-                if (!Number.isFinite(x) || !Number.isFinite(y)) return;
-                onUpdateNodePosition(node.id, x, y);
-              }}
-              onPaneClick={closeNodeDetail}
-              nodeTypes={nodeTypes}
-              fitView
-              fitViewOptions={{ padding: 0.35, maxZoom: 1.25 }}
-              minZoom={0.35}
-              maxZoom={2}
-              className="h-full w-full bg-[#fafafa]"
-              proOptions={{ hideAttribution: true }}
-            >
-              <Background color="#e4e4e7" gap={24} size={1} />
-              <Controls
-                className="!overflow-hidden !rounded-md !border-zinc-100 !bg-white !shadow-xl"
-                showInteractive={false}
-              />
-            </ReactFlow>
-          </div>
+          <FlowView
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onNodeClick={onNodeClick}
+            onUpdateNodePosition={onUpdateNodePosition}
+            onPaneClick={closeNodeDetail}
+          />
         ) : (
-          <div className="h-[min(75dvh,48rem)] min-h-[28rem] w-full overflow-hidden rounded-lg border border-zinc-200 bg-white">
-            <div className="flex h-full min-h-0">
-              <div className="h-full w-[min(38%,22rem)] min-w-[18rem] overflow-y-auto border-r border-zinc-200">
-                {roadmap.nodes.map((node, index) => {
-                  const isActive = selectedListNode?.id === node.id;
-                  return (
-                    <button
-                      key={node.id}
-                      type="button"
-                      onClick={() => setSelectedNodeId(node.id)}
-                      className={`w-full border-b border-zinc-100 px-4 py-3 text-left transition-colors ${
-                        isActive ? "bg-zinc-100" : "hover:bg-zinc-50"
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <span className="mt-0.5 text-xs font-semibold text-zinc-400">
-                          {index + 1}.
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold text-zinc-900">
-                            {node.label}
-                          </p>
-                          <p className="mt-1 truncate text-xs text-zinc-500">
-                            {node.description || "説明なし"}
-                          </p>
-                        </div>
-                        <span
-                          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide ${
-                            node.status === "completed"
-                              ? "bg-emerald-50 text-emerald-600"
-                              : node.status === "in_progress"
-                                ? "bg-amber-50 text-amber-600"
-                                : "bg-zinc-100 text-zinc-600"
-                          }`}
-                        >
-                          {getStatusLabel(node.status)}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="min-h-0 flex-1 overflow-y-auto">
-                {selectedListNode ? (
-                  <div className="flex min-h-full flex-col">
-                    <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4">
-                      <span
-                        className={`rounded-full px-2 py-1 text-[10px] font-bold tracking-wide uppercase ${getStatusChipClass(selectedListNode.status)}`}
-                      >
-                        {getStatusLabel(selectedListNode.status)}
-                      </span>
-                      <div className="inline-flex rounded-md border border-zinc-200 bg-white p-1">
-                        {(
-                          [
-                            {
-                              id: "not_started",
-                              label: "未着手",
-                              icon: <Circle size={12} aria-hidden />,
-                            },
-                            {
-                              id: "in_progress",
-                              label: "進行中",
-                              icon: <Loader2 size={12} className="animate-spin" aria-hidden />,
-                            },
-                            {
-                              id: "completed",
-                              label: "完了",
-                              icon: <CheckCircle2 size={12} aria-hidden />,
-                            },
-                          ] as const
-                        ).map((item) => (
-                          <button
-                            key={item.id}
-                            type="button"
-                            onClick={() => onUpdateNodeStatus(selectedListNode.id, item.id)}
-                            className={`inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] font-semibold transition-colors ${
-                              selectedListNode.status === item.id
-                                ? item.id === "completed"
-                                  ? "bg-emerald-500 text-white"
-                                  : item.id === "in_progress"
-                                    ? "bg-amber-500 text-white"
-                                    : "bg-zinc-900 text-white"
-                                : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
-                            }`}
-                          >
-                            {item.icon}
-                            {item.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex-1 px-6 py-5">
-                      <h2 className="text-xl font-bold tracking-tight text-zinc-900">
-                        {selectedListNode.label}
-                      </h2>
-                      <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-zinc-600">
-                        {selectedListNode.description || "説明はまだありません。"}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex h-full items-center justify-center text-sm text-zinc-400">
-                    ステップがありません
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+          <ListView
+            roadmap={roadmap}
+            selectedListNode={selectedListNode}
+            onSelectNode={setSelectedNodeId}
+            onUpdateNodeStatus={onUpdateNodeStatus}
+          />
         )}
 
         {viewMode === "flow" ? (

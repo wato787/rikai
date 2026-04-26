@@ -17,17 +17,17 @@ import type { RoadmapNode } from "@/types/roadmap";
 function parseLearningPoints(description: string): string[] {
   const trimmed = description.trim();
   if (!trimmed) return [];
-  const lines = trimmed
-    .split("\n")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const lines = trimmed.split("\n").flatMap((s) => {
+    const value = s.trim();
+    return value ? [value] : [];
+  });
   if (lines.length >= 2) {
     return lines.slice(0, 8);
   }
-  const sentences = trimmed
-    .split(/[。\n]+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const sentences = trimmed.split(/[。\n]+/).flatMap((s) => {
+    const value = s.trim();
+    return value ? [value] : [];
+  });
   return sentences.slice(0, 5);
 }
 

@@ -102,7 +102,7 @@ function AppShell() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fafaf9] font-sans text-zinc-800 selection:bg-emerald-100 selection:text-emerald-900 flex">
+    <div className="min-h-screen bg-[#fafaf9] font-sans text-zinc-800 selection:bg-zinc-200 selection:text-zinc-900 flex">
       <aside
         id="app-sidebar"
         className={`flex h-screen shrink-0 sticky top-0 z-50 flex-col border-r border-zinc-100/50 bg-white/60 backdrop-blur-md transition-[width] duration-300 ease-out motion-reduce:transition-none ${

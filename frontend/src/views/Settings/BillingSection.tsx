@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronRight, Shield, Trash2 } from "lucide-react";
 
 import { ApiRequestError, apiPost } from "@/lib/api-client";
@@ -6,6 +6,7 @@ import { ApiRequestError, apiPost } from "@/lib/api-client";
 import { subscriptionMeQueryOptions } from "./queries";
 
 export function BillingSection() {
+  const queryClient = useQueryClient();
   const { data, isPending } = useQuery(subscriptionMeQueryOptions());
 
   const checkoutMutation = useMutation({
@@ -21,6 +22,9 @@ export function BillingSection() {
             ? err.message
             : "チェックアウトを開始できませんでした。";
       window.alert(msg);
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: subscriptionMeQueryOptions().queryKey });
     },
   });
 

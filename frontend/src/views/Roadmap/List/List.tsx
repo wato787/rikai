@@ -108,7 +108,7 @@ export function RoadmapList({ onOpenCreate }: RoadmapListProps) {
                     </h3>
                   </div>
 
-                  <div className="w-14 h-14 shrink-0 bg-zinc-50 rounded-2xl flex items-center justify-center text-zinc-400 group-hover:bg-emerald-600 group-hover:text-white group-hover:shadow-lg group-hover:shadow-emerald-600/30 transition-all duration-300 font-bold text-xs">
+                  <div className="w-14 h-14 shrink-0 bg-zinc-100 rounded-2xl flex items-center justify-center text-zinc-600 group-hover:bg-zinc-900 group-hover:text-white group-hover:shadow-lg group-hover:shadow-zinc-900/20 transition-all duration-300 font-bold text-xs">
                     開く
                   </div>
                 </button>
@@ -120,7 +120,7 @@ export function RoadmapList({ onOpenCreate }: RoadmapListProps) {
                     disabled={
                       deleteMutation.isPending && deleteMutation.variables?.roadmapId === roadmap.id
                     }
-                    className="p-4 rounded-xl text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40"
+                    className="p-4 rounded-xl text-zinc-400 hover:bg-zinc-100 hover:text-red-600 transition-colors disabled:opacity-40"
                     aria-label={`「${roadmap.title}」を削除`}
                   >
                     <Trash2 size={20} strokeWidth={2} />
