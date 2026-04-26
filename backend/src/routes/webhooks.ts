@@ -7,6 +7,7 @@ import * as v from "valibot";
 import { getDb } from "../db";
 import { processedStripeEvents } from "../db/schemas/stripe-events";
 import { subscriptions } from "../db/schemas/subscription";
+import { jsonError } from "../lib/api-error";
 import {
   stripeCustomerIdFromStripeObject,
   subscriptionSyncPatchFromStripe,
@@ -118,7 +119,7 @@ const stripeWebhookRateLimit = ipRateLimit({
 app.post("/stripe", stripeWebhookRateLimit, async (c) => {
   const apiKey = process.env.STRIPE_SECRET_KEY ?? c.env.STRIPE_SECRET_KEY;
   if (!apiKey) {
-    return c.text("Stripe API key not configured", 500);
+    return jsonError(c, 500, "INTERNAL_SERVER_ERROR", "Stripe API key not configured");
   }
 
   const rawBody = await c.req.text();
@@ -139,7 +140,7 @@ app.post("/stripe", stripeWebhookRateLimit, async (c) => {
   } else {
     const secret = process.env.STRIPE_WEBHOOK_SECRET ?? c.env.STRIPE_WEBHOOK_SECRET;
     if (!secret) {
-      return c.text("Webhook secret not configured", 400);
+      return jsonError(c, 400, "VALIDATION_ERROR", "Webhook secret not configured");
     }
 
     const signature = c.req.header("stripe-signature");
@@ -290,7 +291,7 @@ app.post("/stripe", stripeWebhookRateLimit, async (c) => {
     });
   } catch (e) {
     console.error("stripe webhook handler error", e);
-    return c.text("handler error", 500);
+    return jsonError(c, 500, "INTERNAL_SERVER_ERROR", "handler error");
   }
 
   return c.body(null, 200);

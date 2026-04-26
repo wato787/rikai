@@ -7,11 +7,16 @@ import subscriptions from "./routes/subscriptions";
 import webhooks from "./routes/webhooks";
 import type { AppEnv } from "./types/hono-env";
 
-const app = new Hono<AppEnv>();
+export const app = new Hono<AppEnv>();
 
 app.use("*", async (c, next) => {
   const fe = (process.env.FRONTEND_URL ?? c.env.FRONTEND_URL ?? "").replace(/\/$/, "");
-  const allow = new Set<string>(["http://localhost:5173", "http://localhost:3000"]);
+  const nodeEnv = process.env.NODE_ENV ?? c.env.NODE_ENV;
+  const allow = new Set<string>();
+  if (nodeEnv !== "production") {
+    allow.add("http://localhost:5173");
+    allow.add("http://localhost:3000");
+  }
   if (fe) allow.add(fe);
 
   return cors({

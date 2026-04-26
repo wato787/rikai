@@ -157,7 +157,16 @@ export const Signup = () => {
                   className="rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
                 />
                 <CheckCircle2 size={12} className="text-emerald-500 shrink-0" aria-hidden />
-                <span>利用規約に同意します</span>
+                <span>
+                  <Link to="/terms" className="underline underline-offset-2 hover:text-zinc-700">
+                    利用規約
+                  </Link>
+                  {" ・ "}
+                  <Link to="/privacy" className="underline underline-offset-2 hover:text-zinc-700">
+                    プライバシーポリシー
+                  </Link>
+                  {" に同意します"}
+                </span>
               </label>
             </div>
 

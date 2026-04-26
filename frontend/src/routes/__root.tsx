@@ -47,15 +47,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   beforeLoad: async ({ context, location }) => {
     const session = await context.queryClient.ensureQueryData(sessionQueryOptions);
     const path = location.pathname;
-    const isAuthPage = path === "/login" || path === "/signup";
+    const isPublicPage =
+      path === "/login" || path === "/signup" || path === "/terms" || path === "/privacy";
 
-    if (!session && !isAuthPage) {
+    if (!session && !isPublicPage) {
       const returnTo = path === "/" ? undefined : `${path}${location.search}`;
       const search = returnTo ? parseAuthPageSearch({ redirect: returnTo }) : {};
       throw redirect({ to: "/login", search });
     }
 
-    if (session && isAuthPage) {
+    if (session && (path === "/login" || path === "/signup")) {
       throw redirect({ to: "/" });
     }
 
@@ -75,7 +76,11 @@ function RootComponent() {
 
 function AppShell() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isAuthPage = pathname === "/login" || pathname === "/signup";
+  const isPublicPage =
+    pathname === "/login" ||
+    pathname === "/signup" ||
+    pathname === "/terms" ||
+    pathname === "/privacy";
   const isRoadmapsSection = pathname === "/" || pathname.startsWith("/roadmap/");
   const isRoadmapDetailPage = pathname.startsWith("/roadmap/");
   const isSettings = pathname === "/settings";
@@ -97,7 +102,7 @@ function AppShell() {
     });
   };
 
-  if (isAuthPage) {
+  if (isPublicPage) {
     return <Outlet />;
   }
 
