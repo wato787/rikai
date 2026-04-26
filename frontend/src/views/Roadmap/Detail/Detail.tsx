@@ -24,26 +24,47 @@ import {
   Position,
   ReactFlow,
 } from "reactflow";
-import { ArrowLeft, CheckCircle2, Trash2 } from "lucide-react";
-import { m } from "motion/react";
+import { ArrowLeft, CheckCircle2, Circle, List, Loader2, Network } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { Roadmap, RoadmapNode } from "@/types/roadmap";
 
 import { NodeDetailPanel } from "./NodeDetailPanel";
-import { NodeEditModal } from "./NodeEditModal";
 
 const RoadmapSelectedNodeContext = createContext<string | null>(null);
+const ROADMAP_DETAIL_VIEW_MODE_KEY = "rikai.roadmapDetailViewMode";
+
+type DetailViewMode = "list" | "flow";
+
+function getStatusLabel(status: RoadmapNode["status"]): string {
+  if (status === "completed") return "完了";
+  if (status === "in_progress") return "進行中";
+  return "未着手";
+}
+
+function getStatusChipClass(status: RoadmapNode["status"]): string {
+  if (status === "completed") return "bg-emerald-50 text-emerald-600";
+  if (status === "in_progress") return "bg-amber-50 text-amber-600";
+  return "bg-zinc-100 text-zinc-600";
+}
+
+function readInitialViewMode(): DetailViewMode {
+  if (typeof window === "undefined") return "list";
+  try {
+    return localStorage.getItem(ROADMAP_DETAIL_VIEW_MODE_KEY) === "flow" ? "flow" : "list";
+  } catch {
+    return "list";
+  }
+}
 
 function RoadmapNodeComponent({ data, id }: NodeProps) {
   const selectedNodeId = useContext(RoadmapSelectedNodeContext);
   const isSelected = selectedNodeId === id;
 
-  const { label, description, status, onToggleStatus, onOpenEdit } = data as {
+  const { label, description, status, onToggleStatus } = data as {
     label: string;
     description: string;
     status: RoadmapNode["status"];
     onToggleStatus: () => void;
-    onOpenEdit: () => void;
   };
 
   const getStatusIcon = () => {
@@ -70,7 +91,7 @@ function RoadmapNodeComponent({ data, id }: NodeProps) {
       <Handle type="target" position={Position.Top} className="!opacity-0" />
 
       <div
-        className={`nodrag nowheel w-[min(100%,26rem)] max-w-[26rem] cursor-pointer rounded-2xl border bg-white p-5 shadow-sm transition-[box-shadow,border-color] duration-300 hover:shadow-xl hover:shadow-zinc-900/5 group-hover:border-zinc-200 ${
+        className={`w-[min(100%,26rem)] max-w-[26rem] cursor-pointer rounded-lg border bg-white p-4 shadow-sm transition-[box-shadow,border-color] duration-300 hover:shadow-md hover:shadow-zinc-900/5 group-hover:border-zinc-200 ${
           isSelected
             ? "border-emerald-300 ring-2 ring-emerald-400/35 shadow-md shadow-emerald-900/10"
             : "border-zinc-100"
@@ -83,7 +104,7 @@ function RoadmapNodeComponent({ data, id }: NodeProps) {
               e.stopPropagation();
               onToggleStatus();
             }}
-            className="mt-1 shrink-0 transition-transform active:scale-90"
+            className="nodrag mt-1 shrink-0 transition-transform active:scale-90"
             aria-label="ステータスを切り替え"
           >
             {getStatusIcon()}
@@ -101,18 +122,6 @@ function RoadmapNodeComponent({ data, id }: NodeProps) {
               </div>
             ) : null}
           </div>
-
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenEdit();
-            }}
-            className="shrink-0 p-1 text-[10px] font-bold text-zinc-300 opacity-0 transition-colors hover:text-zinc-900 group-hover:opacity-100"
-            aria-label="ステップを編集"
-          >
-            編集
-          </button>
         </div>
 
         <div className="mt-5 flex items-center justify-between">
@@ -122,7 +131,7 @@ function RoadmapNodeComponent({ data, id }: NodeProps) {
                 ? "bg-emerald-50 text-emerald-600"
                 : status === "in_progress"
                   ? "bg-amber-50 text-amber-600"
-                  : "bg-zinc-50 text-zinc-400"
+                  : "bg-zinc-100 text-zinc-500"
             }`}
           >
             {status === "completed" ? "Done" : status === "in_progress" ? "In Progress" : "Todo"}
@@ -140,33 +149,23 @@ type RoadmapDetailProps = {
   /** TanStack Query の dataUpdatedAt。キャッシュがネットワークで更新されたときだけ進む（楽観更新では不変） */
   syncRevision: number;
   onUpdateNodeStatus: (nodeId: string, status: RoadmapNode["status"]) => void;
-  onUpdateNodeContent: (nodeId: string, label: string, description: string) => Promise<void>;
   onUpdateNodePosition: (nodeId: string, x: number, y: number) => void;
-  onDeleteRoadmap?: () => void;
-  isDeletePending?: boolean;
 };
 
 export function RoadmapDetail({
   roadmap,
   syncRevision,
   onUpdateNodeStatus,
-  onUpdateNodeContent,
   onUpdateNodePosition,
-  onDeleteRoadmap,
-  isDeletePending = false,
 }: RoadmapDetailProps) {
-  const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<DetailViewMode>(() => readInitialViewMode());
 
   const onUpdateNodeStatusRef = useRef(onUpdateNodeStatus);
   onUpdateNodeStatusRef.current = onUpdateNodeStatus;
-  const setEditingNodeIdRef = useRef(setEditingNodeId);
-  setEditingNodeIdRef.current = setEditingNodeId;
-
-  const editingNode =
-    editingNodeId === null ? null : (roadmap.nodes.find((n) => n.id === editingNodeId) ?? null);
   const selectedNode =
     selectedNodeId === null ? null : (roadmap.nodes.find((n) => n.id === selectedNodeId) ?? null);
+  const selectedListNode = selectedNode ?? roadmap.nodes[0] ?? null;
 
   const nodeTypes = useMemo(() => ({ roadmapNode: RoadmapNodeComponent }), []);
 
@@ -176,12 +175,28 @@ export function RoadmapDetail({
     }
   }, [roadmap.nodes, selectedNodeId]);
 
+  useEffect(() => {
+    if (viewMode !== "list") return;
+    if (roadmap.nodes.length === 0) return;
+    if (selectedNodeId !== null) return;
+    setSelectedNodeId(roadmap.nodes[0]?.id ?? null);
+  }, [roadmap.nodes, selectedNodeId, viewMode]);
+
   const onNodeClick = useCallback((_event: MouseEvent, node: Node) => {
     setSelectedNodeId(node.id);
   }, []);
 
   const closeNodeDetail = useCallback(() => {
     setSelectedNodeId(null);
+  }, []);
+
+  const handleChangeViewMode = useCallback((nextMode: DetailViewMode) => {
+    setViewMode(nextMode);
+    try {
+      localStorage.setItem(ROADMAP_DETAIL_VIEW_MODE_KEY, nextMode);
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   const flowNodes: Node[] = useMemo(() => {
@@ -200,7 +215,6 @@ export function RoadmapDetail({
                 : "not_started";
           onUpdateNodeStatusRef.current(node.id, nextStatus);
         },
-        onOpenEdit: () => setEditingNodeIdRef.current(node.id),
       },
       draggable: true,
     }));
@@ -278,14 +292,6 @@ export function RoadmapDetail({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- flowNodes/flowEdges を入れると毎レンダーで React Flow が壊れる
   }, [roadmap.id, syncRevision]);
 
-  const progress =
-    roadmap.nodes.length === 0
-      ? 0
-      : Math.round(
-          (roadmap.nodes.filter((n) => n.status === "completed").length / roadmap.nodes.length) *
-            100,
-        );
-
   return (
     <RoadmapSelectedNodeContext.Provider value={selectedNodeId}>
       <div className="flex min-h-0 flex-1 flex-col">
@@ -301,91 +307,192 @@ export function RoadmapDetail({
           </Link>
 
           <div className="flex flex-wrap items-end justify-between gap-6">
-            <div className="space-y-2">
-              <h1 className="text-4xl font-bold tracking-tight text-zinc-900 leading-none">
+            <div className="space-y-1">
+              <h1 className="text-2xl font-bold tracking-tight text-zinc-900 leading-tight">
                 {roadmap.title}
               </h1>
-              {roadmap.topic ? (
-                <p className="max-w-4xl text-sm leading-relaxed text-zinc-500">
-                  トピック: <span className="font-medium text-zinc-700">{roadmap.topic}</span>
-                </p>
-              ) : null}
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                <p className="text-sm font-medium text-zinc-400">
-                  {roadmap.nodes.length} ステップの学習プラン
-                </p>
-                {onDeleteRoadmap ? (
-                  <button
-                    type="button"
-                    onClick={onDeleteRoadmap}
-                    disabled={isDeletePending}
-                    className="inline-flex items-center gap-1.5 text-sm font-bold text-red-600 transition-colors hover:text-red-700 disabled:opacity-40"
-                  >
-                    <Trash2 size={16} strokeWidth={2} aria-hidden />
-                    削除
-                  </button>
-                ) : null}
-              </div>
             </div>
 
-            <div className="flex flex-col items-end gap-3">
-              <div className="text-right">
-                <p className="mb-1 text-[10px] font-bold tracking-widest text-zinc-400 uppercase">
-                  進捗率
-                </p>
-                <p className="text-xl font-bold leading-none text-zinc-900">{progress}%</p>
-              </div>
-              <div className="h-1.5 w-48 overflow-hidden rounded-full bg-zinc-100">
-                <m.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progress}%` }}
-                  className="h-full rounded-full bg-emerald-500"
-                />
+            <div className="flex items-center">
+              <div className="inline-flex rounded-lg border border-zinc-200 bg-white p-1 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => handleChangeViewMode("list")}
+                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    viewMode === "list"
+                      ? "bg-zinc-900 text-white"
+                      : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
+                  }`}
+                  aria-pressed={viewMode === "list"}
+                >
+                  <List size={14} aria-hidden />
+                  リスト
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleChangeViewMode("flow")}
+                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    viewMode === "flow"
+                      ? "bg-zinc-900 text-white"
+                      : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
+                  }`}
+                  aria-pressed={viewMode === "flow"}
+                >
+                  <Network size={14} aria-hidden />
+                  フロー
+                </button>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="group relative flex h-[min(75dvh,48rem)] min-h-[28rem] w-full min-w-0 shrink-0 overflow-hidden rounded-[2rem] border border-zinc-100 bg-white shadow-inner lg:rounded-[2.5rem]">
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onNodeClick={onNodeClick}
-            onNodeDragStop={(_, node) => {
-              const { x, y } = node.position;
-              if (!Number.isFinite(x) || !Number.isFinite(y)) return;
-              onUpdateNodePosition(node.id, x, y);
-            }}
-            onPaneClick={closeNodeDetail}
-            nodeTypes={nodeTypes}
-            fitView
-            fitViewOptions={{ padding: 0.35, maxZoom: 1.25 }}
-            minZoom={0.35}
-            maxZoom={2}
-            className="h-full w-full bg-[#fafafa]"
-            proOptions={{ hideAttribution: true }}
-          >
-            <Background color="#e4e4e7" gap={24} size={1} />
-            <Controls
-              className="!overflow-hidden !rounded-xl !border-zinc-100 !bg-white !shadow-xl"
-              showInteractive={false}
-            />
-          </ReactFlow>
-        </div>
+        {viewMode === "flow" ? (
+          <div className="group relative flex h-[min(75dvh,48rem)] min-h-[28rem] w-full min-w-0 shrink-0 overflow-hidden rounded-lg border border-zinc-100 bg-white shadow-inner">
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onNodeClick={onNodeClick}
+              onNodeDragStop={(_, node) => {
+                const { x, y } = node.position;
+                if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+                onUpdateNodePosition(node.id, x, y);
+              }}
+              onPaneClick={closeNodeDetail}
+              nodeTypes={nodeTypes}
+              fitView
+              fitViewOptions={{ padding: 0.35, maxZoom: 1.25 }}
+              minZoom={0.35}
+              maxZoom={2}
+              className="h-full w-full bg-[#fafafa]"
+              proOptions={{ hideAttribution: true }}
+            >
+              <Background color="#e4e4e7" gap={24} size={1} />
+              <Controls
+                className="!overflow-hidden !rounded-md !border-zinc-100 !bg-white !shadow-xl"
+                showInteractive={false}
+              />
+            </ReactFlow>
+          </div>
+        ) : (
+          <div className="h-[min(75dvh,48rem)] min-h-[28rem] w-full overflow-hidden rounded-lg border border-zinc-200 bg-white">
+            <div className="flex h-full min-h-0">
+              <div className="h-full w-[min(38%,22rem)] min-w-[18rem] overflow-y-auto border-r border-zinc-200">
+                {roadmap.nodes.map((node, index) => {
+                  const isActive = selectedListNode?.id === node.id;
+                  return (
+                    <button
+                      key={node.id}
+                      type="button"
+                      onClick={() => setSelectedNodeId(node.id)}
+                      className={`w-full border-b border-zinc-100 px-4 py-3 text-left transition-colors ${
+                        isActive ? "bg-zinc-100" : "hover:bg-zinc-50"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="mt-0.5 text-xs font-semibold text-zinc-400">
+                          {index + 1}.
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-zinc-900">
+                            {node.label}
+                          </p>
+                          <p className="mt-1 truncate text-xs text-zinc-500">
+                            {node.description || "説明なし"}
+                          </p>
+                        </div>
+                        <span
+                          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide ${
+                            node.status === "completed"
+                              ? "bg-emerald-50 text-emerald-600"
+                              : node.status === "in_progress"
+                                ? "bg-amber-50 text-amber-600"
+                                : "bg-zinc-100 text-zinc-600"
+                          }`}
+                        >
+                          {getStatusLabel(node.status)}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                {selectedListNode ? (
+                  <div className="flex min-h-full flex-col">
+                    <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4">
+                      <span
+                        className={`rounded-full px-2 py-1 text-[10px] font-bold tracking-wide uppercase ${getStatusChipClass(selectedListNode.status)}`}
+                      >
+                        {getStatusLabel(selectedListNode.status)}
+                      </span>
+                      <div className="inline-flex rounded-md border border-zinc-200 bg-white p-1">
+                        {(
+                          [
+                            {
+                              id: "not_started",
+                              label: "未着手",
+                              icon: <Circle size={12} aria-hidden />,
+                            },
+                            {
+                              id: "in_progress",
+                              label: "進行中",
+                              icon: <Loader2 size={12} className="animate-spin" aria-hidden />,
+                            },
+                            {
+                              id: "completed",
+                              label: "完了",
+                              icon: <CheckCircle2 size={12} aria-hidden />,
+                            },
+                          ] as const
+                        ).map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => onUpdateNodeStatus(selectedListNode.id, item.id)}
+                            className={`inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] font-semibold transition-colors ${
+                              selectedListNode.status === item.id
+                                ? item.id === "completed"
+                                  ? "bg-emerald-500 text-white"
+                                  : item.id === "in_progress"
+                                    ? "bg-amber-500 text-white"
+                                    : "bg-zinc-900 text-white"
+                                : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
+                            }`}
+                          >
+                            {item.icon}
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex-1 px-6 py-5">
+                      <h2 className="text-xl font-bold tracking-tight text-zinc-900">
+                        {selectedListNode.label}
+                      </h2>
+                      <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-zinc-600">
+                        {selectedListNode.description || "説明はまだありません。"}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex h-full items-center justify-center text-sm text-zinc-400">
+                    ステップがありません
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
-        <NodeDetailPanel
-          node={selectedNode}
-          onClose={closeNodeDetail}
-          onUpdateStatus={onUpdateNodeStatus}
-        />
-
-        <NodeEditModal
-          node={editingNode}
-          onClose={() => setEditingNodeId(null)}
-          onSave={onUpdateNodeContent}
-        />
+        {viewMode === "flow" ? (
+          <NodeDetailPanel
+            node={selectedNode}
+            onClose={closeNodeDetail}
+            onUpdateStatus={onUpdateNodeStatus}
+          />
+        ) : null}
       </div>
     </RoadmapSelectedNodeContext.Provider>
   );

@@ -1,10 +1,5 @@
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import {
-  createFileRoute,
-  Link,
-  type ErrorComponentProps,
-  useNavigate,
-} from "@tanstack/react-router";
+import { createFileRoute, Link, type ErrorComponentProps } from "@tanstack/react-router";
 import { startTransition, useCallback, useOptimistic } from "react";
 import type { Roadmap, RoadmapNode } from "@/types/roadmap";
 import { ApiRequestError } from "@/lib/api-client";
@@ -12,18 +7,21 @@ import { RoadmapDetail } from "@/views/Roadmap";
 import { roadmapNodePatchMutationOptions } from "@/views/Roadmap/Detail/mutations";
 import { roadmapsDetailQueryOptions } from "@/views/Roadmap/Detail/queries";
 import { useDebouncedNodePositionSave } from "@/views/Roadmap/Detail/useDebouncedNodePositionSave";
-import { roadmapDeleteMutationOptions } from "@/views/Roadmap/List/mutations";
 
 const POSITION_SAVE_DEBOUNCE_MS = 400;
 
-type NodePositionOptimistic = { nodeId: string; x: number; y: number };
+type RoadmapOptimisticUpdate =
+  | { type: "position"; nodeId: string; x: number; y: number }
+  | { type: "status"; nodeId: string; status: RoadmapNode["status"] };
 
-function applyNodePositionOptimistic(state: Roadmap, update: NodePositionOptimistic): Roadmap {
+function applyRoadmapOptimistic(state: Roadmap, update: RoadmapOptimisticUpdate): Roadmap {
   return {
     ...state,
-    nodes: state.nodes.map((n) =>
-      n.id === update.nodeId ? { ...n, position: { x: update.x, y: update.y } } : n,
-    ),
+    nodes: state.nodes.map((n) => {
+      if (n.id !== update.nodeId) return n;
+      if (update.type === "position") return { ...n, position: { x: update.x, y: update.y } };
+      return { ...n, status: update.status };
+    }),
   };
 }
 
@@ -56,44 +54,25 @@ export const Route = createFileRoute("/roadmap/$roadmapId")({
 
 function RoadmapDetailPage() {
   const { roadmapId } = Route.useParams();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { data: roadmap } = useSuspenseQuery(roadmapsDetailQueryOptions(roadmapId));
+  const { data: roadmap, dataUpdatedAt } = useSuspenseQuery(roadmapsDetailQueryOptions(roadmapId));
 
-  const [optimisticRoadmap, addOptimisticNodePosition] = useOptimistic(
-    roadmap,
-    applyNodePositionOptimistic,
-  );
+  const [optimisticRoadmap, addOptimisticRoadmap] = useOptimistic(roadmap, applyRoadmapOptimistic);
 
   const patchMutation = useMutation(roadmapNodePatchMutationOptions(roadmapId, queryClient));
 
-  const deleteMutation = useMutation({
-    ...roadmapDeleteMutationOptions(queryClient, {
-      onDeleted: () => navigate({ to: "/" }),
-    }),
-    onError: (error) => {
-      window.alert(error instanceof Error ? error.message : "削除に失敗しました。");
-    },
-  });
-
   const handleUpdateNodeStatus = useCallback(
     (nodeId: string, status: RoadmapNode["status"]) => {
+      addOptimisticRoadmap({ type: "status", nodeId, status });
       patchMutation.mutate({ nodeId, status });
     },
-    [patchMutation],
-  );
-
-  const handleUpdateNodeContent = useCallback(
-    async (nodeId: string, label: string, description: string) => {
-      await patchMutation.mutateAsync({ nodeId, label, description });
-    },
-    [patchMutation],
+    [addOptimisticRoadmap, patchMutation],
   );
 
   const persistNodePosition = useCallback(
     (nodeId: string, x: number, y: number) => {
       startTransition(async () => {
-        addOptimisticNodePosition({ nodeId, x, y });
+        addOptimisticRoadmap({ type: "position", nodeId, x, y });
         await patchMutation.mutateAsync({
           nodeId,
           positionX: x,
@@ -101,7 +80,7 @@ function RoadmapDetailPage() {
         });
       });
     },
-    [addOptimisticNodePosition, patchMutation],
+    [addOptimisticRoadmap, patchMutation],
   );
 
   const schedulePositionSave = useDebouncedNodePositionSave(persistNodePosition, {
@@ -123,20 +102,12 @@ function RoadmapDetailPage() {
     [optimisticRoadmap.nodes, schedulePositionSave],
   );
 
-  const handleDeleteRoadmap = useCallback(() => {
-    const ok = window.confirm(`「${roadmap.title}」を削除しますか？この操作は取り消せません。`);
-    if (!ok) return;
-    deleteMutation.mutate({ roadmapId });
-  }, [deleteMutation, roadmap.title, roadmapId]);
-
   return (
     <RoadmapDetail
       roadmap={optimisticRoadmap}
+      syncRevision={dataUpdatedAt}
       onUpdateNodeStatus={handleUpdateNodeStatus}
-      onUpdateNodeContent={handleUpdateNodeContent}
       onUpdateNodePosition={handleUpdateNodePosition}
-      onDeleteRoadmap={handleDeleteRoadmap}
-      isDeletePending={deleteMutation.isPending}
     />
   );
 }

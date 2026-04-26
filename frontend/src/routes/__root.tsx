@@ -77,11 +77,15 @@ function AppShell() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isAuthPage = pathname === "/login" || pathname === "/signup";
   const isRoadmapsSection = pathname === "/" || pathname.startsWith("/roadmap/");
+  const isRoadmapDetailPage = pathname.startsWith("/roadmap/");
   const isSettings = pathname === "/settings";
 
   const [sidebarOpen, setSidebarOpen] = useState(() => readSidebarOpenFromStorage());
+  const sidebarLockedCollapsed = isRoadmapDetailPage;
+  const effectiveSidebarOpen = sidebarLockedCollapsed ? false : sidebarOpen;
 
   const toggleSidebar = () => {
+    if (sidebarLockedCollapsed) return;
     setSidebarOpen((prev) => {
       const next = !prev;
       try {
@@ -102,23 +106,23 @@ function AppShell() {
       <aside
         id="app-sidebar"
         className={`flex h-screen shrink-0 sticky top-0 z-50 flex-col border-r border-zinc-100/50 bg-white/60 backdrop-blur-md transition-[width] duration-300 ease-out motion-reduce:transition-none ${
-          sidebarOpen ? "w-64" : "w-20"
+          effectiveSidebarOpen ? "w-64" : "w-20"
         }`}
       >
         <div className="flex h-24 shrink-0 items-center justify-between px-6">
           <SoftTooltip
             label="ホームへ"
-            enabled={sidebarOpen}
+            enabled={effectiveSidebarOpen}
             side="right"
             className="block min-w-0 flex-1 overflow-hidden transition-[opacity,width] duration-300 ease-out motion-reduce:transition-none"
           >
             <Link
               to="/"
               className={`flex min-w-0 cursor-default items-center gap-3 overflow-hidden rounded-lg outline-none transition-[opacity,width] duration-300 ease-out focus-visible:ring-2 focus-visible:ring-emerald-500/35 motion-reduce:transition-none ${
-                sidebarOpen ? "w-auto opacity-100" : "pointer-events-none w-0 opacity-0"
+                effectiveSidebarOpen ? "w-auto opacity-100" : "pointer-events-none w-0 opacity-0"
               }`}
-              aria-hidden={!sidebarOpen}
-              tabIndex={sidebarOpen ? undefined : -1}
+              aria-hidden={!effectiveSidebarOpen}
+              tabIndex={effectiveSidebarOpen ? undefined : -1}
               aria-label="Rikai ホーム"
             >
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-lg font-bold text-white shadow-sm shadow-emerald-600/20">
@@ -130,19 +134,32 @@ function AppShell() {
             </Link>
           </SoftTooltip>
           <SoftTooltip
-            label={sidebarOpen ? "サイドバーを折りたたむ" : "サイドバーを展開"}
+            label={
+              sidebarLockedCollapsed
+                ? "ロードマップ詳細ではサイドバー固定"
+                : effectiveSidebarOpen
+                  ? "サイドバーを折りたたむ"
+                  : "サイドバーを展開"
+            }
             side="right"
             className="inline-flex shrink-0"
           >
             <button
               type="button"
               onClick={toggleSidebar}
-              aria-expanded={sidebarOpen}
+              aria-expanded={effectiveSidebarOpen}
               aria-controls="app-sidebar"
-              aria-label={sidebarOpen ? "サイドバーを折りたたむ" : "サイドバーを展開"}
-              className="rounded-xl p-2 text-zinc-400 transition-colors duration-200 hover:bg-zinc-100/60 hover:text-zinc-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/35"
+              aria-label={
+                sidebarLockedCollapsed
+                  ? "ロードマップ詳細ではサイドバー固定"
+                  : effectiveSidebarOpen
+                    ? "サイドバーを折りたたむ"
+                    : "サイドバーを展開"
+              }
+              disabled={sidebarLockedCollapsed}
+              className="rounded-xl p-2 text-zinc-400 transition-colors duration-200 hover:bg-zinc-100/60 hover:text-zinc-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/35 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-zinc-400"
             >
-              {sidebarOpen ? (
+              {effectiveSidebarOpen ? (
                 <PanelLeftClose size={20} aria-hidden />
               ) : (
                 <PanelLeftOpen size={20} aria-hidden />
@@ -154,13 +171,13 @@ function AppShell() {
         <nav className="flex-1 space-y-2 px-4 py-4">
           <SoftTooltip
             label="ロードマップ一覧"
-            enabled={!sidebarOpen}
+            enabled={!effectiveSidebarOpen}
             side="right"
             className="block w-full"
           >
             <Link
               to="/"
-              aria-label={sidebarOpen ? undefined : "ロードマップ"}
+              aria-label={effectiveSidebarOpen ? undefined : "ロードマップ"}
               className={`flex w-full touch-manipulation items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/35 ${
                 isRoadmapsSection
                   ? "bg-emerald-50/90 text-emerald-800"
@@ -170,7 +187,7 @@ function AppShell() {
               <LayoutGrid size={18} className="shrink-0 opacity-90" aria-hidden />
               <span
                 className={`overflow-hidden whitespace-nowrap transition-[opacity,width] duration-300 ease-out motion-reduce:transition-none ${
-                  sidebarOpen ? "w-auto opacity-100" : "w-0 opacity-0"
+                  effectiveSidebarOpen ? "w-auto opacity-100" : "w-0 opacity-0"
                 }`}
               >
                 ロードマップ
@@ -179,13 +196,13 @@ function AppShell() {
           </SoftTooltip>
           <SoftTooltip
             label="アカウント設定"
-            enabled={!sidebarOpen}
+            enabled={!effectiveSidebarOpen}
             side="right"
             className="block w-full"
           >
             <Link
               to="/settings"
-              aria-label={sidebarOpen ? undefined : "アカウント設定"}
+              aria-label={effectiveSidebarOpen ? undefined : "アカウント設定"}
               className={`flex w-full touch-manipulation items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/35 ${
                 isSettings
                   ? "bg-emerald-50/90 text-emerald-800"
@@ -195,7 +212,7 @@ function AppShell() {
               <SettingsIcon size={18} className="shrink-0 opacity-90" aria-hidden />
               <span
                 className={`overflow-hidden whitespace-nowrap transition-[opacity,width] duration-300 ease-out motion-reduce:transition-none ${
-                  sidebarOpen ? "w-auto opacity-100" : "w-0 opacity-0"
+                  effectiveSidebarOpen ? "w-auto opacity-100" : "w-0 opacity-0"
                 }`}
               >
                 アカウント
@@ -206,10 +223,10 @@ function AppShell() {
 
         <div
           className={`shrink-0 transition-[padding,opacity] duration-300 ease-out motion-reduce:transition-none ${
-            sidebarOpen ? "p-6" : "flex justify-center px-2 pb-4 pt-2"
+            effectiveSidebarOpen ? "p-6" : "flex justify-center px-2 pb-4 pt-2"
           }`}
         >
-          {sidebarOpen ? (
+          {effectiveSidebarOpen ? (
             <div className="flex items-center gap-3 rounded-xl border border-zinc-200/70 bg-white/85 p-3.5 shadow-sm shadow-zinc-900/5 ring-1 ring-zinc-950/[0.04] backdrop-blur-sm">
               <SoftTooltip label={planTooltipLabel} side="top" className="inline-flex shrink-0">
                 <button
@@ -241,8 +258,12 @@ function AppShell() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <main
-          className={`mx-auto w-full flex-1 overflow-y-auto p-16 transition-[max-width] duration-300 ease-out motion-reduce:transition-none ${
-            sidebarOpen ? "max-w-5xl" : "max-w-7xl"
+          className={`mx-auto w-full flex-1 overflow-y-auto transition-[max-width,padding] duration-300 ease-out motion-reduce:transition-none ${
+            isRoadmapDetailPage
+              ? "max-w-none p-8"
+              : effectiveSidebarOpen
+                ? "max-w-5xl p-16"
+                : "max-w-7xl p-16"
           }`}
         >
           <Outlet />

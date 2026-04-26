@@ -106,7 +106,7 @@ export function NodeDetailPanel({ node, onClose, onUpdateStatus }: NodeDetailPan
           role="dialog"
           aria-modal="true"
           aria-labelledby="node-detail-title"
-          className="fixed top-0 right-0 bottom-0 z-[110] flex max-h-dvh w-[min(100%,400px)] flex-col border-l border-zinc-100 bg-white shadow-2xl"
+          className="fixed top-0 right-0 bottom-0 z-[110] flex max-h-dvh w-[min(100%,520px)] flex-col border-l border-zinc-100 bg-white shadow-2xl"
         >
           <div className="flex shrink-0 items-center justify-between border-b border-zinc-50 p-6">
             <div
