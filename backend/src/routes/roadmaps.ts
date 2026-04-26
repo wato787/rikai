@@ -1,5 +1,6 @@
 import { and, asc, count, desc, eq, sql } from "drizzle-orm";
 import { Hono } from "hono";
+import * as v from "valibot";
 import { v7 as uuidv7 } from "uuid";
 
 import { getDb } from "../db";
@@ -20,15 +21,23 @@ import type { AppEnv } from "../types/hono-env";
 const NODE_STATUSES = ["not_started", "in_progress", "completed"] as const;
 type NodeStatus = (typeof NODE_STATUSES)[number];
 
-function isNodeStatus(v: unknown): v is NodeStatus {
-  return typeof v === "string" && (NODE_STATUSES as readonly string[]).includes(v);
-}
-
 const POSITION_COORD_MAX = 1_000_000;
 
 function isFiniteCoord(n: unknown): n is number {
   return typeof n === "number" && Number.isFinite(n) && Math.abs(n) <= POSITION_COORD_MAX;
 }
+
+const createRoadmapBodySchema = v.object({
+  topic: v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(200)),
+});
+
+const patchNodeBodySchema = v.object({
+  status: v.optional(v.picklist(NODE_STATUSES)),
+  label: v.optional(v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(500))),
+  description: v.optional(v.pipe(v.string(), v.maxLength(5000))),
+  positionX: v.optional(v.number()),
+  positionY: v.optional(v.number()),
+});
 
 const app = new Hono<AppEnv>();
 const createRoadmapRateLimit = ipRateLimit({
@@ -87,17 +96,14 @@ app.get("/", async (c) => {
 /** POST /api/roadmaps */
 app.post("/", createRoadmapRateLimit, async (c) => {
   const userId = c.get("user").id;
-  let body: unknown;
+  let rawBody: unknown;
   try {
-    body = await c.req.json();
+    rawBody = await c.req.json();
   } catch {
     return jsonError(c, 400, "VALIDATION_ERROR", "JSON の形式が不正です。");
   }
-  if (!body || typeof body !== "object") {
-    return jsonError(c, 400, "VALIDATION_ERROR", "リクエストボディが不正です。");
-  }
-  const topic = (body as { topic?: unknown }).topic;
-  if (typeof topic !== "string" || topic.length < 1 || topic.length > 200) {
+  const parsedBody = v.safeParse(createRoadmapBodySchema, rawBody);
+  if (!parsedBody.success) {
     return jsonError(
       c,
       400,
@@ -105,6 +111,7 @@ app.post("/", createRoadmapRateLimit, async (c) => {
       "topic は必須で、1〜200文字である必要があります。",
     );
   }
+  const { topic } = parsedBody.output;
 
   const db = getDb(c.env.rikai_db);
   const now = Date.now();
@@ -341,22 +348,17 @@ app.patch("/:id/nodes/:nodeId", async (c) => {
   const userId = c.get("user").id;
   const roadmapId = c.req.param("id");
   const nodeId = c.req.param("nodeId");
-  let body: unknown;
+  let rawBody: unknown;
   try {
-    body = await c.req.json();
+    rawBody = await c.req.json();
   } catch {
     return jsonError(c, 400, "VALIDATION_ERROR", "JSON の形式が不正です。");
   }
-  if (!body || typeof body !== "object") {
+  const parsedBody = v.safeParse(patchNodeBodySchema, rawBody);
+  if (!parsedBody.success) {
     return jsonError(c, 400, "VALIDATION_ERROR", "リクエストボディが不正です。");
   }
-  const raw = body as {
-    status?: unknown;
-    label?: unknown;
-    description?: unknown;
-    positionX?: unknown;
-    positionY?: unknown;
-  };
+  const raw = parsedBody.output;
 
   const updates: {
     status?: NodeStatus;
@@ -367,40 +369,14 @@ app.patch("/:id/nodes/:nodeId", async (c) => {
   } = {};
 
   if (raw.status !== undefined) {
-    if (!isNodeStatus(raw.status)) {
-      return jsonError(
-        c,
-        400,
-        "VALIDATION_ERROR",
-        "status は not_started / in_progress / completed のいずれかである必要があります。",
-      );
-    }
     updates.status = raw.status;
   }
 
   if (raw.label !== undefined) {
-    if (typeof raw.label !== "string") {
-      return jsonError(c, 400, "VALIDATION_ERROR", "label は文字列である必要があります。");
-    }
-    const t = raw.label.trim();
-    if (t.length < 1 || t.length > 500) {
-      return jsonError(c, 400, "VALIDATION_ERROR", "label は1〜500文字である必要があります。");
-    }
-    updates.label = t;
+    updates.label = raw.label;
   }
 
   if (raw.description !== undefined) {
-    if (typeof raw.description !== "string") {
-      return jsonError(c, 400, "VALIDATION_ERROR", "description は文字列である必要があります。");
-    }
-    if (raw.description.length > 5000) {
-      return jsonError(
-        c,
-        400,
-        "VALIDATION_ERROR",
-        "description は5000文字以内である必要があります。",
-      );
-    }
     updates.description = raw.description;
   }
 

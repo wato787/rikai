@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { Context } from "hono";
 import Stripe from "stripe";
+import * as v from "valibot";
 
 import { getDb } from "../db";
 import { processedStripeEvents } from "../db/schemas/stripe-events";
@@ -36,13 +37,19 @@ function skipStripeWebhookSignatureVerify(
 }
 
 function parseStripeEventInsecure(rawBody: string): Stripe.Event | null {
+  const insecureStripeEventSchema = v.object({
+    id: v.string(),
+    type: v.string(),
+    data: v.object({
+      object: v.unknown(),
+    }),
+  });
+
   try {
     const parsed = JSON.parse(rawBody) as unknown;
-    if (!parsed || typeof parsed !== "object") return null;
-    const o = parsed as Record<string, unknown>;
-    if (typeof o.id !== "string" || typeof o.type !== "string") return null;
-    if (!o.data || typeof o.data !== "object") return null;
-    return parsed as Stripe.Event;
+    const validated = v.safeParse(insecureStripeEventSchema, parsed);
+    if (!validated.success) return null;
+    return validated.output as Stripe.Event;
   } catch {
     return null;
   }

@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
+import * as v from "valibot";
 import { v7 as uuidv7 } from "uuid";
 
 import { getDb } from "../db";
@@ -18,7 +19,11 @@ import { requireAuth } from "../middleware/auth";
 import type { AppEnv } from "../types/hono-env";
 
 function frontendBase(c: { env: { FRONTEND_URL: string } }) {
-  return c.env.FRONTEND_URL.replace(/\/$/, "");
+  const parsed = v.safeParse(v.pipe(v.string(), v.trim(), v.url()), c.env.FRONTEND_URL);
+  if (!parsed.success) {
+    throw new Error("FRONTEND_URL is invalid");
+  }
+  return parsed.output.replace(/\/$/, "");
 }
 
 const app = new Hono<AppEnv>();
