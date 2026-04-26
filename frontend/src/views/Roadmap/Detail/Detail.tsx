@@ -9,17 +9,13 @@ import {
   type MouseEvent,
 } from "react";
 import {
-  applyEdgeChanges,
-  applyNodeChanges,
   Background,
   ConnectionLineType,
   Controls,
   Handle,
   MarkerType,
   type Edge,
-  type EdgeChange,
   type Node,
-  type NodeChange,
   type NodeProps,
   Position,
   ReactFlow,
@@ -186,36 +182,17 @@ type FlowViewProps = {
   nodes: Node[];
   edges: Edge[];
   nodeTypes: { roadmapNode: typeof RoadmapNodeComponent };
-  onNodesChange: (changes: NodeChange[]) => void;
-  onEdgesChange: (changes: EdgeChange[]) => void;
   onNodeClick: (_event: MouseEvent, node: Node) => void;
-  onUpdateNodePosition: (nodeId: string, x: number, y: number) => void;
   onPaneClick: () => void;
 };
 
-function FlowView({
-  nodes,
-  edges,
-  nodeTypes,
-  onNodesChange,
-  onEdgesChange,
-  onNodeClick,
-  onUpdateNodePosition,
-  onPaneClick,
-}: FlowViewProps) {
+function FlowView({ nodes, edges, nodeTypes, onNodeClick, onPaneClick }: FlowViewProps) {
   return (
     <div className="group relative flex h-[min(75dvh,48rem)] min-h-[28rem] w-full min-w-0 shrink-0 overflow-hidden rounded-lg border border-zinc-100 bg-white shadow-inner">
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
         onNodeClick={onNodeClick}
-        onNodeDragStop={(_, node) => {
-          const { x, y } = node.position;
-          if (!Number.isFinite(x) || !Number.isFinite(y)) return;
-          onUpdateNodePosition(node.id, x, y);
-        }}
         onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
         fitView
@@ -350,15 +327,9 @@ type RoadmapDetailProps = {
   /** TanStack Query の dataUpdatedAt。キャッシュがネットワークで更新されたときだけ進む（楽観更新では不変） */
   syncRevision: number;
   onUpdateNodeStatus: (nodeId: string, status: RoadmapNode["status"]) => void;
-  onUpdateNodePosition: (nodeId: string, x: number, y: number) => void;
 };
 
-export function RoadmapDetail({
-  roadmap,
-  syncRevision,
-  onUpdateNodeStatus,
-  onUpdateNodePosition,
-}: RoadmapDetailProps) {
+export function RoadmapDetail({ roadmap, syncRevision, onUpdateNodeStatus }: RoadmapDetailProps) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<DetailViewMode>(() => readInitialViewMode());
 
@@ -417,7 +388,7 @@ export function RoadmapDetail({
           onUpdateNodeStatusRef.current(node.id, nextStatus);
         },
       },
-      draggable: true,
+      draggable: false,
     }));
   }, [roadmap.nodes]);
 
@@ -474,14 +445,6 @@ export function RoadmapDetail({
   const [nodes, setNodes] = useState<Node[]>(flowNodes);
   const [edges, setEdges] = useState<Edge[]>(flowEdges);
 
-  const onNodesChange = useCallback((changes: NodeChange[]) => {
-    setNodes((nds) => applyNodeChanges(changes, nds));
-  }, []);
-
-  const onEdgesChange = useCallback((changes: EdgeChange[]) => {
-    setEdges((eds) => applyEdgeChanges(changes, eds));
-  }, []);
-
   /**
    * useOptimistic で nodes の参照だけが変わるレンダーが多い。flowNodes を deps に入れると
    * 毎回 setNodes して React Flow が壊れる。syncRevision（Query の dataUpdatedAt）は
@@ -525,10 +488,7 @@ export function RoadmapDetail({
             nodes={nodes}
             edges={edges}
             nodeTypes={nodeTypes}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
             onNodeClick={onNodeClick}
-            onUpdateNodePosition={onUpdateNodePosition}
             onPaneClick={closeNodeDetail}
           />
         ) : (

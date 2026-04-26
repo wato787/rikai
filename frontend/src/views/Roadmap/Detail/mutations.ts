@@ -10,8 +10,6 @@ type RoadmapNodePatchVariables = {
   status?: RoadmapNodeStatus;
   label?: string;
   description?: string;
-  positionX?: number;
-  positionY?: number;
 };
 
 type RoadmapNodePatchResponse = {
@@ -20,8 +18,6 @@ type RoadmapNodePatchResponse = {
     label: string;
     description: string;
     status: string;
-    positionX?: number | null;
-    positionY?: number | null;
     updatedAt: number;
   };
 };
@@ -31,10 +27,6 @@ function buildNodePatchBody(vars: RoadmapNodePatchVariables): Record<string, unk
   if (vars.status !== undefined) body.status = vars.status;
   if (vars.label !== undefined) body.label = vars.label;
   if (vars.description !== undefined) body.description = vars.description;
-  if (vars.positionX !== undefined && vars.positionY !== undefined) {
-    body.positionX = vars.positionX;
-    body.positionY = vars.positionY;
-  }
   return body;
 }
 

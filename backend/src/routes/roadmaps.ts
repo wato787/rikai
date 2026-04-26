@@ -21,12 +21,6 @@ import type { AppEnv } from "../types/hono-env";
 const NODE_STATUSES = ["not_started", "in_progress", "completed"] as const;
 type NodeStatus = (typeof NODE_STATUSES)[number];
 
-const POSITION_COORD_MAX = 1_000_000;
-
-function isFiniteCoord(n: unknown): n is number {
-  return typeof n === "number" && Number.isFinite(n) && Math.abs(n) <= POSITION_COORD_MAX;
-}
-
 const createRoadmapBodySchema = v.object({
   topic: v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(200)),
 });
@@ -35,8 +29,6 @@ const patchNodeBodySchema = v.object({
   status: v.optional(v.picklist(NODE_STATUSES)),
   label: v.optional(v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(500))),
   description: v.optional(v.pipe(v.string(), v.maxLength(5000))),
-  positionX: v.optional(v.number()),
-  positionY: v.optional(v.number()),
 });
 
 const app = new Hono<AppEnv>();
@@ -47,6 +39,68 @@ const createRoadmapRateLimit = ipRateLimit({
 });
 
 app.use("*", requireAuth);
+
+const LAYOUT_X_GAP = 360;
+const LAYOUT_Y_GAP = 220;
+
+function computeAutoLayout(
+  nodeIdsInOrder: string[],
+  roadmapEdges: Array<{ sourceId: string; targetId: string }>,
+): Map<string, { x: number; y: number }> {
+  const indegree = new Map<string, number>();
+  const children = new Map<string, string[]>();
+  const levels = new Map<string, number>();
+
+  for (const id of nodeIdsInOrder) {
+    indegree.set(id, 0);
+    children.set(id, []);
+    levels.set(id, 0);
+  }
+
+  for (const e of roadmapEdges) {
+    if (!indegree.has(e.sourceId) || !indegree.has(e.targetId)) continue;
+    indegree.set(e.targetId, (indegree.get(e.targetId) ?? 0) + 1);
+    children.get(e.sourceId)?.push(e.targetId);
+  }
+
+  const queue: string[] = [];
+  for (const id of nodeIdsInOrder) {
+    if ((indegree.get(id) ?? 0) === 0) queue.push(id);
+  }
+  if (queue.length === 0 && nodeIdsInOrder.length > 0) queue.push(nodeIdsInOrder[0]!);
+
+  let head = 0;
+  while (head < queue.length) {
+    const id = queue[head]!;
+    head += 1;
+    const level = levels.get(id) ?? 0;
+    for (const next of children.get(id) ?? []) {
+      levels.set(next, Math.max(levels.get(next) ?? 0, level + 1));
+      indegree.set(next, (indegree.get(next) ?? 1) - 1);
+      if ((indegree.get(next) ?? 0) === 0) queue.push(next);
+    }
+  }
+
+  const layers = new Map<number, string[]>();
+  for (const id of nodeIdsInOrder) {
+    const layer = levels.get(id) ?? 0;
+    const list = layers.get(layer) ?? [];
+    list.push(id);
+    layers.set(layer, list);
+  }
+
+  const positions = new Map<string, { x: number; y: number }>();
+  for (const [layer, ids] of layers.entries()) {
+    const startY = -((ids.length - 1) * LAYOUT_Y_GAP) / 2;
+    ids.forEach((id, idx) => {
+      positions.set(id, {
+        x: layer * LAYOUT_X_GAP,
+        y: startY + idx * LAYOUT_Y_GAP,
+      });
+    });
+  }
+  return positions;
+}
 
 /** GET /api/roadmaps */
 app.get("/", async (c) => {
@@ -216,6 +270,8 @@ app.post("/", createRoadmapRateLimit, async (c) => {
     description: n.description,
     status: "not_started" as const,
     orderIndex: Math.floor(n.order),
+    positionX: null as number | null,
+    positionY: null as number | null,
     createdAt: now,
     updatedAt: now,
   }));
@@ -246,6 +302,20 @@ app.post("/", createRoadmapRateLimit, async (c) => {
       targetId,
       createdAt: now,
     });
+  }
+
+  const nodeIdsInOrder = nodeRows
+    .slice()
+    .sort((a, b) => a.orderIndex - b.orderIndex)
+    .map((n) => n.id);
+  const positions = computeAutoLayout(
+    nodeIdsInOrder,
+    edgeRows.map((e) => ({ sourceId: e.sourceId, targetId: e.targetId })),
+  );
+  for (const n of nodeRows) {
+    const pos = positions.get(n.id);
+    n.positionX = pos?.x ?? 0;
+    n.positionY = pos?.y ?? 0;
   }
 
   const nextAiUsed = usedThisMonth + 1;
@@ -343,7 +413,7 @@ app.delete("/:id", async (c) => {
   return c.body(null, 204);
 });
 
-/** PATCH /api/roadmaps/:id/nodes/:nodeId（status / label / description / position のいずれか1つ以上） */
+/** PATCH /api/roadmaps/:id/nodes/:nodeId（status / label / description のいずれか1つ以上） */
 app.patch("/:id/nodes/:nodeId", async (c) => {
   const userId = c.get("user").id;
   const roadmapId = c.req.param("id");
@@ -364,8 +434,6 @@ app.patch("/:id/nodes/:nodeId", async (c) => {
     status?: NodeStatus;
     label?: string;
     description?: string;
-    positionX?: number;
-    positionY?: number;
   } = {};
 
   if (raw.status !== undefined) {
@@ -380,30 +448,12 @@ app.patch("/:id/nodes/:nodeId", async (c) => {
     updates.description = raw.description;
   }
 
-  const hasPosX = raw.positionX !== undefined;
-  const hasPosY = raw.positionY !== undefined;
-  if (hasPosX !== hasPosY) {
-    return jsonError(c, 400, "VALIDATION_ERROR", "positionX と positionY は両方指定してください。");
-  }
-  if (hasPosX) {
-    if (!isFiniteCoord(raw.positionX) || !isFiniteCoord(raw.positionY)) {
-      return jsonError(
-        c,
-        400,
-        "VALIDATION_ERROR",
-        `positionX / positionY は ±${POSITION_COORD_MAX} 以内の有限数である必要があります。`,
-      );
-    }
-    updates.positionX = raw.positionX;
-    updates.positionY = raw.positionY;
-  }
-
   if (Object.keys(updates).length === 0) {
     return jsonError(
       c,
       400,
       "VALIDATION_ERROR",
-      "status / label / description / position（positionX と positionY のペア）のいずれかを指定してください。",
+      "status / label / description のいずれかを指定してください。",
     );
   }
 
@@ -427,8 +477,6 @@ app.patch("/:id/nodes/:nodeId", async (c) => {
       label: nodes.label,
       description: nodes.description,
       status: nodes.status,
-      positionX: nodes.positionX,
-      positionY: nodes.positionY,
       updatedAt: nodes.updatedAt,
     });
 
@@ -443,8 +491,6 @@ app.patch("/:id/nodes/:nodeId", async (c) => {
       label: updated.label,
       description: updated.description,
       status: updated.status,
-      positionX: updated.positionX ?? null,
-      positionY: updated.positionY ?? null,
       updatedAt: updated.updatedAt,
     },
   });

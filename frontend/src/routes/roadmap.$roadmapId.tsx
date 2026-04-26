@@ -1,25 +1,19 @@
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, type ErrorComponentProps } from "@tanstack/react-router";
-import { startTransition, useCallback, useOptimistic } from "react";
+import { useCallback, useOptimistic } from "react";
 import type { Roadmap, RoadmapNode } from "@/types/roadmap";
 import { ApiRequestError } from "@/lib/api-client";
 import { RoadmapDetail } from "@/views/Roadmap";
 import { roadmapNodePatchMutationOptions } from "@/views/Roadmap/Detail/mutations";
 import { roadmapsDetailQueryOptions } from "@/views/Roadmap/Detail/queries";
-import { useDebouncedNodePositionSave } from "@/views/Roadmap/Detail/useDebouncedNodePositionSave";
 
-const POSITION_SAVE_DEBOUNCE_MS = 400;
-
-type RoadmapOptimisticUpdate =
-  | { type: "position"; nodeId: string; x: number; y: number }
-  | { type: "status"; nodeId: string; status: RoadmapNode["status"] };
+type RoadmapOptimisticUpdate = { type: "status"; nodeId: string; status: RoadmapNode["status"] };
 
 function applyRoadmapOptimistic(state: Roadmap, update: RoadmapOptimisticUpdate): Roadmap {
   return {
     ...state,
     nodes: state.nodes.map((n) => {
       if (n.id !== update.nodeId) return n;
-      if (update.type === "position") return { ...n, position: { x: update.x, y: update.y } };
       return { ...n, status: update.status };
     }),
   };
@@ -69,45 +63,11 @@ function RoadmapDetailPage() {
     [addOptimisticRoadmap, patchMutation],
   );
 
-  const persistNodePosition = useCallback(
-    (nodeId: string, x: number, y: number) => {
-      startTransition(async () => {
-        addOptimisticRoadmap({ type: "position", nodeId, x, y });
-        await patchMutation.mutateAsync({
-          nodeId,
-          positionX: x,
-          positionY: y,
-        });
-      });
-    },
-    [addOptimisticRoadmap, patchMutation],
-  );
-
-  const schedulePositionSave = useDebouncedNodePositionSave(persistNodePosition, {
-    wait: POSITION_SAVE_DEBOUNCE_MS,
-    flushScopeKey: roadmapId,
-  });
-
-  const handleUpdateNodePosition = useCallback(
-    (nodeId: string, x: number, y: number) => {
-      const node = optimisticRoadmap.nodes.find((n) => n.id === nodeId);
-      const px = node?.position?.x;
-      const py = node?.position?.y;
-      const same =
-        px !== undefined && py !== undefined && Math.abs(px - x) < 0.5 && Math.abs(py - y) < 0.5;
-      if (same) return;
-
-      schedulePositionSave(nodeId, x, y);
-    },
-    [optimisticRoadmap.nodes, schedulePositionSave],
-  );
-
   return (
     <RoadmapDetail
       roadmap={optimisticRoadmap}
       syncRevision={dataUpdatedAt}
       onUpdateNodeStatus={handleUpdateNodeStatus}
-      onUpdateNodePosition={handleUpdateNodePosition}
     />
   );
 }
