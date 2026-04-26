@@ -1,20 +1,12 @@
 import { Fragment, useEffect } from "react";
 import { createPortal } from "react-dom";
-import {
-  BookOpen,
-  CheckCircle2,
-  Circle,
-  ExternalLink,
-  FileText,
-  Info,
-  Loader2,
-  PlayCircle,
-  X,
-} from "lucide-react";
+import { BookOpen, CheckCircle2, Circle, ExternalLink, Info, Loader2, X } from "lucide-react";
 import { AnimatePresence, m, useReducedMotion } from "motion/react";
 import type { RoadmapNode } from "@/types/roadmap";
 
 function parseLearningPoints(description: string): string[] {
+  const sectionPoints = extractSectionItems(description, "学習ポイント");
+  if (sectionPoints.length > 0) return sectionPoints.slice(0, 8);
   const trimmed = description.trim();
   if (!trimmed) return [];
   const lines = trimmed.split("\n").flatMap((s) => {
@@ -29,6 +21,41 @@ function parseLearningPoints(description: string): string[] {
     return value ? [value] : [];
   });
   return sentences.slice(0, 5);
+}
+
+type ParsedSource = {
+  title: string;
+  href: string;
+  reason: string;
+};
+
+function extractSectionItems(description: string, heading: string): string[] {
+  const lines = description.split("\n").map((line) => line.trim());
+  const start = lines.findIndex((line) => line === heading);
+  if (start < 0) return [];
+  const items: string[] = [];
+  for (let i = start + 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line) continue;
+    if (!line.startsWith("- ")) {
+      if (items.length > 0) break;
+      continue;
+    }
+    items.push(line.slice(2).trim());
+  }
+  return items;
+}
+
+function parseTrustedSources(description: string): ParsedSource[] {
+  const lines = extractSectionItems(description, "参考リンク");
+  return lines
+    .map((line) => {
+      const [titleRaw, hrefRaw, reasonRaw] = line.split("|").map((v) => v.trim());
+      if (!titleRaw || !hrefRaw || !reasonRaw) return null;
+      if (!/^https:\/\/\S+/i.test(hrefRaw)) return null;
+      return { title: titleRaw, href: hrefRaw, reason: reasonRaw };
+    })
+    .filter((v): v is ParsedSource => v !== null);
 }
 
 type NodeDetailPanelProps = {
@@ -50,32 +77,7 @@ export function NodeDetailPanel({ node, onClose, onUpdateStatus }: NodeDetailPan
   }, [node, onClose]);
 
   const learningPoints = node ? parseLearningPoints(node.description) : [];
-
-  const searchHref = (suffix: string) =>
-    `https://www.google.com/search?q=${encodeURIComponent(`${node?.label ?? ""} ${suffix}`)}`;
-
-  const resources = node
-    ? ([
-        {
-          title: "公式ドキュメント",
-          type: "Doc",
-          icon: <FileText size={14} aria-hidden />,
-          href: searchHref("公式 ドキュメント"),
-        },
-        {
-          title: "基礎から学ぶチュートリアル",
-          type: "Video",
-          icon: <PlayCircle size={14} aria-hidden />,
-          href: searchHref("チュートリアル 入門"),
-        },
-        {
-          title: "実践ベストプラクティス",
-          type: "Article",
-          icon: <BookOpen size={14} aria-hidden />,
-          href: searchHref("ベストプラクティス"),
-        },
-      ] as const)
-    : [];
+  const trustedSources = node ? parseTrustedSources(node.description) : [];
 
   if (!node) return null;
   if (typeof document === "undefined") return null;
@@ -157,24 +159,52 @@ export function NodeDetailPanel({ node, onClose, onUpdateStatus }: NodeDetailPan
                 推奨リソース
               </h3>
               <div className="space-y-3">
-                {resources.map((resource) => (
+                {trustedSources.length > 0 ? (
+                  trustedSources.map((resource) => (
+                    <a
+                      key={`${resource.title}-${resource.href}`}
+                      href={resource.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group flex w-full items-center justify-between rounded-2xl border border-zinc-100 bg-zinc-50 p-4 transition-all hover:border-emerald-500/30 hover:bg-emerald-50/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/35"
+                    >
+                      <span className="flex min-w-0 items-center gap-3">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-zinc-400 shadow-sm transition-colors group-hover:text-emerald-600">
+                          <BookOpen size={14} aria-hidden />
+                        </span>
+                        <span className="min-w-0 text-left">
+                          <span className="block text-sm font-bold text-zinc-900">
+                            {resource.title}
+                          </span>
+                          <span className="block text-[11px] font-medium text-zinc-500">
+                            {resource.reason}
+                          </span>
+                        </span>
+                      </span>
+                      <ExternalLink
+                        size={14}
+                        className="shrink-0 text-zinc-300 transition-colors group-hover:text-emerald-500"
+                        aria-hidden
+                      />
+                    </a>
+                  ))
+                ) : (
                   <a
-                    key={resource.title}
-                    href={resource.href}
+                    href={`https://www.google.com/search?q=${encodeURIComponent(`${node.label} 公式 ドキュメント`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="group flex w-full items-center justify-between rounded-2xl border border-zinc-100 bg-zinc-50 p-4 transition-all hover:border-emerald-500/30 hover:bg-emerald-50/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/35"
                   >
                     <span className="flex min-w-0 items-center gap-3">
                       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-zinc-400 shadow-sm transition-colors group-hover:text-emerald-600">
-                        {resource.icon}
+                        <BookOpen size={14} aria-hidden />
                       </span>
                       <span className="min-w-0 text-left">
                         <span className="block text-sm font-bold text-zinc-900">
-                          {resource.title}
+                          公式情報を検索
                         </span>
                         <span className="text-[10px] font-medium tracking-wider text-zinc-400 uppercase">
-                          {resource.type}
+                          Fallback
                         </span>
                       </span>
                     </span>
@@ -184,7 +214,7 @@ export function NodeDetailPanel({ node, onClose, onUpdateStatus }: NodeDetailPan
                       aria-hidden
                     />
                   </a>
-                ))}
+                )}
               </div>
             </section>
 

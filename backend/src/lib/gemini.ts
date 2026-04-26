@@ -9,7 +9,16 @@ import { GoogleGenAI } from "@google/genai";
 
 type GeminiRoadmapPayload = {
   title: string;
-  nodes: { id: string; label: string; description: string; order: number }[];
+  nodes: {
+    id: string;
+    label: string;
+    summary: string;
+    learningPoints: string[];
+    practiceTasks: string[];
+    completionCriteria: string[];
+    trustedSources: { title: string; url: string; reason: string }[];
+    order: number;
+  }[];
   edges: { source: string; target: string }[];
 };
 
@@ -35,9 +44,52 @@ const ROADMAP_RESPONSE_JSON_SCHEMA = {
             description: "ノードの一意 ID（edges の source/target から参照される）。",
           },
           label: { type: "string", description: "ステップ名（日本語）。" },
-          description: {
+          summary: {
             type: "string",
-            description: "そのステップの内容を 1〜3 文で日本語で説明する。",
+            description: "このステップで何を学ぶかの概要（日本語 1〜2 文）。",
+          },
+          learningPoints: {
+            type: "array",
+            description: "学習ポイント。3〜5 件。各項目は具体的に。",
+            minItems: 3,
+            maxItems: 5,
+            items: {
+              type: "string",
+            },
+          },
+          practiceTasks: {
+            type: "array",
+            description: "実践タスク。2〜4 件。手を動かす課題を具体的に。",
+            minItems: 2,
+            maxItems: 4,
+            items: {
+              type: "string",
+            },
+          },
+          completionCriteria: {
+            type: "array",
+            description: "完了条件。2〜3 件。達成判定可能な内容にする。",
+            minItems: 2,
+            maxItems: 3,
+            items: {
+              type: "string",
+            },
+          },
+          trustedSources: {
+            type: "array",
+            description:
+              "信頼できる情報源リンク。2〜4件。公式ドキュメント・公的機関・一次情報を優先し、URL は https から始める。",
+            minItems: 2,
+            maxItems: 4,
+            items: {
+              type: "object",
+              properties: {
+                title: { type: "string", description: "リンクタイトル（日本語）" },
+                url: { type: "string", description: "https から始まる URL" },
+                reason: { type: "string", description: "このリンクを推奨する理由（日本語）" },
+              },
+              required: ["title", "url", "reason"],
+            },
           },
           order: {
             type: "integer",
@@ -45,7 +97,16 @@ const ROADMAP_RESPONSE_JSON_SCHEMA = {
             minimum: 0,
           },
         },
-        required: ["id", "label", "description", "order"],
+        required: [
+          "id",
+          "label",
+          "summary",
+          "learningPoints",
+          "practiceTasks",
+          "completionCriteria",
+          "trustedSources",
+          "order",
+        ],
       },
     },
     edges: {
@@ -68,7 +129,8 @@ const ROADMAP_RESPONSE_JSON_SCHEMA = {
 const SYSTEM_INSTRUCTION = `あなたは学習ロードマップ設計の専門家です。
 ユーザーが入力した「学習トピック」に対し、DAG（閉路のない有向グラフ）として学習ステップを設計してください。
 出力はリクエストで指定された JSON スキーマに厳密に従うこと。スキーマ外のキーや説明文の前置きは付けないこと。
-すべての説明文・タイトル・ラベルは自然な日本語で書くこと。`;
+すべての説明文・タイトル・ラベルは自然な日本語で書くこと。
+内容は抽象論ではなく、実際に学習者が次の行動に移せる具体性を持たせること。`;
 
 /** 安定版の推奨モデル（Structured Outputs 対応） */
 const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
@@ -111,16 +173,53 @@ function parseRoadmapPayload(text: string): GeminiRoadmapPayload | null {
     if (
       typeof row.id !== "string" ||
       typeof row.label !== "string" ||
-      typeof row.description !== "string" ||
+      typeof row.summary !== "string" ||
+      !Array.isArray(row.learningPoints) ||
+      !Array.isArray(row.practiceTasks) ||
+      !Array.isArray(row.completionCriteria) ||
+      !Array.isArray(row.trustedSources) ||
       order === null ||
       order < 0
+    ) {
+      return null;
+    }
+    const learningPoints = row.learningPoints.filter(
+      (item): item is string => typeof item === "string",
+    );
+    const practiceTasks = row.practiceTasks.filter(
+      (item): item is string => typeof item === "string",
+    );
+    const completionCriteria = row.completionCriteria.filter(
+      (item): item is string => typeof item === "string",
+    );
+    const trustedSources = row.trustedSources
+      .filter((item): item is Record<string, unknown> => !!item && typeof item === "object")
+      .flatMap((item) => {
+        const title = item.title;
+        const url = item.url;
+        const reason = item.reason;
+        if (typeof title !== "string" || typeof url !== "string" || typeof reason !== "string") {
+          return [];
+        }
+        if (!/^https:\/\/\S+/i.test(url)) return [];
+        return [{ title, url, reason }];
+      });
+    if (
+      learningPoints.length < 3 ||
+      practiceTasks.length < 2 ||
+      completionCriteria.length < 2 ||
+      trustedSources.length < 2
     ) {
       return null;
     }
     nodes.push({
       id: row.id,
       label: row.label,
-      description: row.description,
+      summary: row.summary,
+      learningPoints,
+      practiceTasks,
+      completionCriteria,
+      trustedSources,
       order,
     });
   }
@@ -205,7 +304,19 @@ export async function generateRoadmapWithGemini(
       if (!parsed) {
         return { payload: null, failureKind: "invalid_response" };
       }
-      return { payload: parsed };
+      return {
+        payload: {
+          ...parsed,
+          nodes: parsed.nodes.map((n) => ({
+            ...n,
+            summary: n.summary,
+            learningPoints: n.learningPoints,
+            practiceTasks: n.practiceTasks,
+            completionCriteria: n.completionCriteria,
+            trustedSources: n.trustedSources,
+          })),
+        },
+      };
     } catch (err) {
       const retryable = isRetryableGeminiError(err);
       logGeminiFailure(`generateContent failed (attempt ${attempt}/${MAX_GENERATE_ATTEMPTS})`, err);

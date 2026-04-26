@@ -256,57 +256,52 @@ function ListView({ roadmap, selectedListNode, onSelectNode, onUpdateNodeStatus 
         <div className="min-h-0 flex-1 overflow-y-auto">
           {selectedListNode ? (
             <div className="flex min-h-full flex-col">
-              <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4">
-                <span
-                  className={`rounded-full px-2 py-1 text-[10px] font-bold tracking-wide uppercase ${getStatusChipClass(selectedListNode.status)}`}
-                >
-                  {getStatusLabel(selectedListNode.status)}
-                </span>
-                <div className="inline-flex rounded-md border border-zinc-200 bg-white p-1">
-                  {(
-                    [
-                      {
-                        id: "not_started",
-                        label: "未着手",
-                        icon: <Circle size={12} aria-hidden />,
-                      },
-                      {
-                        id: "in_progress",
-                        label: "進行中",
-                        icon: <Loader2 size={12} className="animate-spin" aria-hidden />,
-                      },
-                      {
-                        id: "completed",
-                        label: "完了",
-                        icon: <CheckCircle2 size={12} aria-hidden />,
-                      },
-                    ] as const
-                  ).map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => onUpdateNodeStatus(selectedListNode.id, item.id)}
-                      className={`inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] font-semibold transition-colors ${
-                        selectedListNode.status === item.id
-                          ? item.id === "completed"
-                            ? "bg-emerald-500 text-white"
-                            : item.id === "in_progress"
-                              ? "bg-amber-500 text-white"
-                              : "bg-zinc-900 text-white"
-                          : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
-                      }`}
-                    >
-                      {item.icon}
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
               <div className="flex-1 px-6 py-5">
-                <h2 className="text-xl font-bold tracking-tight text-zinc-900">
-                  {selectedListNode.label}
-                </h2>
-                <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-zinc-600">
+                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-200 pb-4">
+                  <h2 className="text-xl font-bold tracking-tight text-zinc-900">
+                    {selectedListNode.label}
+                  </h2>
+                  <div className="inline-flex rounded-md border border-zinc-200 bg-white p-1">
+                    {(
+                      [
+                        {
+                          id: "not_started",
+                          label: "未着手",
+                          icon: <Circle size={12} aria-hidden />,
+                        },
+                        {
+                          id: "in_progress",
+                          label: "進行中",
+                          icon: <Loader2 size={12} className="animate-spin" aria-hidden />,
+                        },
+                        {
+                          id: "completed",
+                          label: "完了",
+                          icon: <CheckCircle2 size={12} aria-hidden />,
+                        },
+                      ] as const
+                    ).map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => onUpdateNodeStatus(selectedListNode.id, item.id)}
+                        className={`inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] font-semibold transition-colors ${
+                          selectedListNode.status === item.id
+                            ? item.id === "completed"
+                              ? "bg-emerald-500 text-white"
+                              : item.id === "in_progress"
+                                ? "bg-amber-500 text-white"
+                                : "bg-zinc-900 text-white"
+                            : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
+                        }`}
+                      >
+                        {item.icon}
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <p className="mt-5 whitespace-pre-wrap text-sm leading-relaxed text-zinc-600">
                   {selectedListNode.description || "説明はまだありません。"}
                 </p>
               </div>
@@ -364,6 +359,9 @@ export function RoadmapDetail({ roadmap, syncRevision, onUpdateNodeStatus }: Roa
 
   const handleChangeViewMode = useCallback((nextMode: DetailViewMode) => {
     setViewMode(nextMode);
+    if (nextMode === "flow") {
+      setSelectedNodeId(null);
+    }
     try {
       localStorage.setItem(ROADMAP_DETAIL_VIEW_MODE_KEY, nextMode);
     } catch {
