@@ -81,11 +81,7 @@ type GenerateRoadmapOptions = {
   model?: string;
 };
 
-type GeminiGenerateFailureKind =
-  | "transient_unavailable"
-  | "blocked"
-  | "invalid_response"
-  | "other";
+type GeminiGenerateFailureKind = "transient_unavailable" | "blocked" | "invalid_response" | "other";
 
 type GenerateRoadmapResult = {
   payload: GeminiRoadmapPayload | null;
