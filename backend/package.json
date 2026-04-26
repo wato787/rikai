@@ -9,6 +9,7 @@
     "db:reset": "bunx wrangler d1 migrations apply rikai_db --local && bun scripts/seed-local.ts",
     "db:studio": "drizzle-kit studio",
     "build": "bun build src/index.ts --outdir=dist --target=bun",
+    "test": "bun test",
     "start": "bun dist/index.js",
     "lint": "oxlint -c ../.oxlintrc.json --import-plugin --node-plugin --promise-plugin --tsconfig ./tsconfig.json ./src",
     "lint:fix": "oxlint -c ../.oxlintrc.json --import-plugin --node-plugin --promise-plugin --tsconfig ./tsconfig.json --fix ./src",

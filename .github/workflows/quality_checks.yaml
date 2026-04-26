@@ -56,7 +56,7 @@ jobs:
               - '.gitignore'
 
   frontend:
-    name: Frontend - typecheck / lint / format
+    name: Frontend - typecheck / lint / format / build
     needs: changes
     if: >-
       ${{
@@ -87,8 +87,11 @@ jobs:
       - name: Format (check)
         run: bun run --filter frontend format:check
 
+      - name: Build
+        run: bun run --filter frontend build
+
   backend:
-    name: Backend - typecheck / lint / format
+    name: Backend - typecheck / lint / format / build / test
     needs: changes
     if: >-
       ${{
@@ -118,3 +121,9 @@ jobs:
 
       - name: Format (check)
         run: bun run --filter backend format:check
+
+      - name: Build
+        run: bun run --filter backend build
+
+      - name: Test
+        run: bun run --filter backend test

@@ -6,6 +6,7 @@ import { getDb } from "../db";
 import { edges, nodes, roadmaps } from "../db/schemas/roadmap";
 import { subscriptions } from "../db/schemas/subscription";
 import { generateRoadmapWithGemini } from "../lib/gemini";
+import { ipRateLimit } from "../lib/rate-limit";
 import { jsonError } from "../lib/api-error";
 import {
   currentAiUsageMonthKey,
@@ -30,6 +31,11 @@ function isFiniteCoord(n: unknown): n is number {
 }
 
 const app = new Hono<AppEnv>();
+const createRoadmapRateLimit = ipRateLimit({
+  routeKey: "roadmaps:create",
+  windowMs: 60_000,
+  maxRequests: 10,
+});
 
 app.use("*", requireAuth);
 
@@ -79,7 +85,7 @@ app.get("/", async (c) => {
 });
 
 /** POST /api/roadmaps */
-app.post("/", async (c) => {
+app.post("/", createRoadmapRateLimit, async (c) => {
   const userId = c.get("user").id;
   let body: unknown;
   try {

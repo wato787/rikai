@@ -12,6 +12,7 @@ import {
   subscriptionSyncPatchFromStripe,
   type SubscriptionSyncPatch,
 } from "../lib/stripe-subscription-sync";
+import { ipRateLimit } from "../lib/rate-limit";
 import { createStripeClient } from "../lib/stripe-server";
 import type { AppEnv } from "../types/hono-env";
 
@@ -74,9 +75,14 @@ async function applySubscriptionPatchByStripeSubId(
 }
 
 const app = new Hono<AppEnv>();
+const stripeWebhookRateLimit = ipRateLimit({
+  routeKey: "webhooks:stripe",
+  windowMs: 60_000,
+  maxRequests: 120,
+});
 
 /** POST /api/webhooks/stripe — 署名検証のみ（認証なし） */
-app.post("/stripe", async (c) => {
+app.post("/stripe", stripeWebhookRateLimit, async (c) => {
   const apiKey = process.env.STRIPE_SECRET_KEY ?? c.env.STRIPE_SECRET_KEY;
   if (!apiKey) {
     return c.text("Stripe API key not configured", 500);

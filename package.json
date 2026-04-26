@@ -18,6 +18,8 @@
     "typecheck": "bun run typecheck:backend && bun run typecheck:frontend",
     "typecheck:backend": "tsgo --project backend/tsconfig.json --noEmit",
     "typecheck:frontend": "tsgo --project frontend/tsconfig.json --noEmit",
+    "test": "bun run test:backend",
+    "test:backend": "bun run --filter backend test",
     "clean:script": "node -e \"const fs=require('fs');['node_modules','backend/node_modules','frontend/node_modules','backend/dist','frontend/dist'].forEach(p=>{try{fs.rmSync(p,{recursive:true,force:true})}catch(e){}})\"",
     "lint": "bun run --filter '*' lint",
     "lint:fix": "bun run --filter '*' lint:fix",

@@ -13,6 +13,7 @@ import {
 import { createStripeClient } from "../lib/stripe-server";
 import { subscriptionSyncPatchFromStripe } from "../lib/stripe-subscription-sync";
 import { subscriptionCurrentPeriodEndMs } from "../lib/stripe-util";
+import { ipRateLimit } from "../lib/rate-limit";
 import { requireAuth } from "../middleware/auth";
 import type { AppEnv } from "../types/hono-env";
 
@@ -21,6 +22,11 @@ function frontendBase(c: { env: { FRONTEND_URL: string } }) {
 }
 
 const app = new Hono<AppEnv>();
+const billingWriteRateLimit = ipRateLimit({
+  routeKey: "subscriptions:write",
+  windowMs: 60_000,
+  maxRequests: 20,
+});
 
 app.use("*", requireAuth);
 
@@ -122,7 +128,7 @@ app.get("/me", async (c) => {
 });
 
 /** POST /api/subscriptions/checkout */
-app.post("/checkout", async (c) => {
+app.post("/checkout", billingWriteRateLimit, async (c) => {
   const userId = c.get("user").id;
   const secret = process.env.STRIPE_SECRET_KEY ?? c.env.STRIPE_SECRET_KEY;
   const priceId = process.env.STRIPE_PRICE_PRO ?? c.env.STRIPE_PRICE_PRO;
@@ -186,7 +192,7 @@ app.post("/checkout", async (c) => {
 });
 
 /** POST /api/subscriptions/cancel */
-app.post("/cancel", async (c) => {
+app.post("/cancel", billingWriteRateLimit, async (c) => {
   const userId = c.get("user").id;
   const secret = process.env.STRIPE_SECRET_KEY ?? c.env.STRIPE_SECRET_KEY;
   if (!secret) {
