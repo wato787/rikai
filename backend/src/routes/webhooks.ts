@@ -8,7 +8,6 @@ import { getDb } from "../db";
 import { processedStripeEvents } from "../db/schemas/stripe-events";
 import { subscriptions } from "../db/schemas/subscription";
 import {
-  invoiceSubscriptionId,
   stripeCustomerIdFromStripeObject,
   subscriptionSyncPatchFromStripe,
   type SubscriptionSyncPatch,
@@ -16,6 +15,41 @@ import {
 import { ipRateLimit } from "../lib/rate-limit";
 import { createStripeClient } from "../lib/stripe-server";
 import type { AppEnv } from "../types/hono-env";
+
+const stripeEventEnvelopeSchema = v.object({
+  id: v.string(),
+  type: v.string(),
+  data: v.object({
+    object: v.unknown(),
+  }),
+});
+
+const checkoutCompletedObjectSchema = v.object({
+  mode: v.optional(v.string()),
+  payment_status: v.optional(v.string()),
+  metadata: v.optional(v.record(v.string(), v.string())),
+  client_reference_id: v.optional(v.nullable(v.string())),
+  subscription: v.optional(v.union([v.string(), v.object({ id: v.string() }), v.null()])),
+  customer: v.optional(v.union([v.string(), v.object({ id: v.string() }), v.null()])),
+});
+
+const subscriptionEventObjectSchema = v.object({
+  id: v.string(),
+  customer: v.optional(v.unknown()),
+});
+
+const invoiceEventObjectSchema = v.object({
+  subscription: v.optional(v.union([v.string(), v.object({ id: v.string() }), v.null()])),
+  customer: v.optional(v.union([v.string(), v.object({ id: v.string() }), v.null()])),
+});
+
+function customerIdFromUnknown(v: unknown): string | null {
+  if (typeof v === "string") return v;
+  if (v && typeof v === "object" && "id" in v && typeof v.id === "string") {
+    return v.id;
+  }
+  return null;
+}
 
 /** wrangler dev + stripe listen が届けるホスト想定（本番 URL では常に false） */
 function isLocalWebhookHost(c: Context): boolean {
@@ -37,17 +71,9 @@ function skipStripeWebhookSignatureVerify(
 }
 
 function parseStripeEventInsecure(rawBody: string): Stripe.Event | null {
-  const insecureStripeEventSchema = v.object({
-    id: v.string(),
-    type: v.string(),
-    data: v.object({
-      object: v.unknown(),
-    }),
-  });
-
   try {
     const parsed = JSON.parse(rawBody) as unknown;
-    const validated = v.safeParse(insecureStripeEventSchema, parsed);
+    const validated = v.safeParse(stripeEventEnvelopeSchema, parsed);
     if (!validated.success) return null;
     return validated.output as Stripe.Event;
   } catch {
@@ -148,7 +174,11 @@ app.post("/stripe", stripeWebhookRateLimit, async (c) => {
   try {
     switch (event.type) {
       case "checkout.session.completed": {
-        const session = event.data.object as Stripe.Checkout.Session;
+        const parsed = v.safeParse(checkoutCompletedObjectSchema, event.data.object);
+        if (!parsed.success) {
+          break;
+        }
+        const session = parsed.output;
         if (session.mode !== "subscription") {
           break;
         }
@@ -163,7 +193,7 @@ app.post("/stripe", stripeWebhookRateLimit, async (c) => {
           typeof session.subscription === "string"
             ? session.subscription
             : session.subscription?.id;
-        const custId = stripeCustomerIdFromStripeObject(session.customer);
+        const custId = customerIdFromUnknown(session.customer);
         if (!subId || !custId) {
           break;
         }
@@ -183,35 +213,55 @@ app.post("/stripe", stripeWebhookRateLimit, async (c) => {
         break;
       }
       case "customer.subscription.updated": {
-        const subObj = event.data.object as Stripe.Subscription;
-        const custId = stripeCustomerIdFromStripeObject(subObj.customer);
-        const patch = subscriptionSyncPatchFromStripe(subObj);
-        await applySubscriptionPatchByStripeSubId(db, subObj.id, custId, patch);
+        const parsed = v.safeParse(subscriptionEventObjectSchema, event.data.object);
+        if (!parsed.success) {
+          break;
+        }
+        const subObj = parsed.output;
+        const custId = customerIdFromUnknown(subObj.customer);
+        const fullSub = await stripe.subscriptions.retrieve(subObj.id);
+        const patch = subscriptionSyncPatchFromStripe(fullSub);
+        await applySubscriptionPatchByStripeSubId(db, fullSub.id, custId, patch);
         break;
       }
       case "customer.subscription.deleted": {
-        const subObj = event.data.object as Stripe.Subscription;
-        const custId = stripeCustomerIdFromStripeObject(subObj.customer);
-        const patch = subscriptionSyncPatchFromStripe(subObj);
-        await applySubscriptionPatchByStripeSubId(db, subObj.id, custId, patch);
+        const parsed = v.safeParse(subscriptionEventObjectSchema, event.data.object);
+        if (!parsed.success) {
+          break;
+        }
+        const subObj = parsed.output;
+        const custId = customerIdFromUnknown(subObj.customer);
+        const fullSub = await stripe.subscriptions.retrieve(subObj.id);
+        const patch = subscriptionSyncPatchFromStripe(fullSub);
+        await applySubscriptionPatchByStripeSubId(db, fullSub.id, custId, patch);
         break;
       }
       case "invoice.paid": {
-        const invoice = event.data.object as Stripe.Invoice;
-        const subId = invoiceSubscriptionId(invoice);
+        const parsed = v.safeParse(invoiceEventObjectSchema, event.data.object);
+        if (!parsed.success) {
+          break;
+        }
+        const invoice = parsed.output;
+        const subId =
+          typeof invoice.subscription === "string"
+            ? invoice.subscription
+            : invoice.subscription?.id;
         if (!subId) {
           break;
         }
         const sub = await stripe.subscriptions.retrieve(subId);
         const custId =
-          stripeCustomerIdFromStripeObject(invoice.customer) ??
-          stripeCustomerIdFromStripeObject(sub.customer);
+          customerIdFromUnknown(invoice.customer) ?? stripeCustomerIdFromStripeObject(sub.customer);
         const patch = subscriptionSyncPatchFromStripe(sub);
         await applySubscriptionPatchByStripeSubId(db, sub.id, custId, patch);
         break;
       }
       case "invoice.payment_failed": {
-        const invoice = event.data.object as Stripe.Invoice;
+        const parsed = v.safeParse(invoiceEventObjectSchema, event.data.object);
+        if (!parsed.success) {
+          break;
+        }
+        const invoice = parsed.output;
         const custId =
           typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
         if (!custId) {

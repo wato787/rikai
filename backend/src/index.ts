@@ -30,6 +30,14 @@ app.get("/", (c) => {
   return c.text("Rikai API");
 });
 
+app.get("/health", (c) => {
+  return c.json({
+    status: "ok",
+    service: "rikai-api",
+    timestamp: Date.now(),
+  });
+});
+
 app.on(["POST", "GET"], "/api/auth/*", (c) => {
   const auth = initAuth(c.env.rikai_db, c.env);
   return auth.handler(c.req.raw);

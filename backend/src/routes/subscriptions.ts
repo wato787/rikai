@@ -18,10 +18,10 @@ import { ipRateLimit } from "../lib/rate-limit";
 import { requireAuth } from "../middleware/auth";
 import type { AppEnv } from "../types/hono-env";
 
-function frontendBase(c: { env: { FRONTEND_URL: string } }) {
+function frontendBase(c: { env: { FRONTEND_URL: string } }): string | null {
   const parsed = v.safeParse(v.pipe(v.string(), v.trim(), v.url()), c.env.FRONTEND_URL);
   if (!parsed.success) {
-    throw new Error("FRONTEND_URL is invalid");
+    return null;
   }
   return parsed.output.replace(/\/$/, "");
 }
@@ -172,6 +172,9 @@ app.post("/checkout", billingWriteRateLimit, async (c) => {
   }
 
   const base = frontendBase(c);
+  if (!base) {
+    return jsonError(c, 500, "INTERNAL_SERVER_ERROR", "FRONTEND_URL の設定が不正です。");
+  }
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     customer: customerId,
