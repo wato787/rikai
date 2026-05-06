@@ -11,7 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SignupRouteImport } from './routes/signup'
-import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
@@ -27,9 +27,9 @@ const SignupRoute = SignupRouteImport.update({
   path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -57,7 +57,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
-  '/settings': typeof SettingsRoute
+  '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/roadmap/$roadmapId': typeof RoadmapRoadmapIdRoute
@@ -66,7 +66,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
-  '/settings': typeof SettingsRoute
+  '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/roadmap/$roadmapId': typeof RoadmapRoadmapIdRoute
@@ -76,7 +76,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
-  '/settings': typeof SettingsRoute
+  '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/roadmap/$roadmapId': typeof RoadmapRoadmapIdRoute
@@ -87,7 +87,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/privacy'
-    | '/settings'
+    | '/pricing'
     | '/signup'
     | '/terms'
     | '/roadmap/$roadmapId'
@@ -96,7 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/privacy'
-    | '/settings'
+    | '/pricing'
     | '/signup'
     | '/terms'
     | '/roadmap/$roadmapId'
@@ -105,7 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/privacy'
-    | '/settings'
+    | '/pricing'
     | '/signup'
     | '/terms'
     | '/roadmap/$roadmapId'
@@ -114,8 +114,8 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
+  PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
-  SettingsRoute: typeof SettingsRoute
   SignupRoute: typeof SignupRoute
   TermsRoute: typeof TermsRoute
   RoadmapRoadmapIdRoute: typeof RoadmapRoadmapIdRoute
@@ -137,11 +137,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -178,8 +178,8 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
+  PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
-  SettingsRoute: SettingsRoute,
   SignupRoute: SignupRoute,
   TermsRoute: TermsRoute,
   RoadmapRoadmapIdRoute: RoadmapRoadmapIdRoute,

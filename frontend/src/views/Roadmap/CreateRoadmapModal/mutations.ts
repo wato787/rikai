@@ -2,7 +2,7 @@ import { mutationOptions, type QueryClient } from "@tanstack/react-query";
 
 import { apiPost } from "@/lib/api-client";
 
-import { billingMeQueryKey } from "@/views/Settings/queries";
+import { billingMeQueryKey } from "@/views/Pricing/queries";
 
 import { roadmapsListQueryKey } from "../List/queries";
 

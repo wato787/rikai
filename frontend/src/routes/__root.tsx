@@ -12,7 +12,7 @@ import {
   LayoutGrid,
   PanelLeftClose,
   PanelLeftOpen,
-  Settings as SettingsIcon,
+  CreditCard,
   Sparkles,
 } from "lucide-react";
 import { LazyMotion, domAnimation } from "motion/react";
@@ -48,7 +48,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     const session = await context.queryClient.ensureQueryData(sessionQueryOptions);
     const path = location.pathname;
     const isPublicPage =
-      path === "/login" || path === "/signup" || path === "/terms" || path === "/privacy";
+      path === "/login" ||
+      path === "/signup" ||
+      path === "/terms" ||
+      path === "/privacy" ||
+      path === "/pricing";
 
     if (!session && !isPublicPage) {
       const returnTo = path === "/" ? undefined : `${path}${location.search}`;
@@ -80,10 +84,11 @@ function AppShell() {
     pathname === "/login" ||
     pathname === "/signup" ||
     pathname === "/terms" ||
-    pathname === "/privacy";
+    pathname === "/privacy" ||
+    pathname === "/pricing";
   const isRoadmapsSection = pathname === "/" || pathname.startsWith("/roadmap/");
   const isRoadmapDetailPage = pathname.startsWith("/roadmap/");
-  const isSettings = pathname === "/settings";
+  const isPricing = pathname === "/pricing";
 
   const [sidebarOpen, setSidebarOpen] = useState(() => readSidebarOpenFromStorage());
   const sidebarLockedCollapsed = isRoadmapDetailPage;
@@ -200,27 +205,27 @@ function AppShell() {
             </Link>
           </SoftTooltip>
           <SoftTooltip
-            label="アカウント設定"
+            label="料金"
             enabled={!effectiveSidebarOpen}
             side="right"
             className="block w-full"
           >
             <Link
-              to="/settings"
-              aria-label={effectiveSidebarOpen ? undefined : "アカウント設定"}
+              to="/pricing"
+              aria-label={effectiveSidebarOpen ? undefined : "料金"}
               className={`flex w-full touch-manipulation items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/35 ${
-                isSettings
+                isPricing
                   ? "bg-emerald-50/90 text-emerald-800"
                   : "text-zinc-500 hover:bg-zinc-100/70 hover:text-zinc-800"
               }`}
             >
-              <SettingsIcon size={18} className="shrink-0 opacity-90" aria-hidden />
+              <CreditCard size={18} className="shrink-0 opacity-90" aria-hidden />
               <span
                 className={`overflow-hidden whitespace-nowrap transition-[opacity,width] duration-300 ease-out motion-reduce:transition-none ${
                   effectiveSidebarOpen ? "w-auto opacity-100" : "w-0 opacity-0"
                 }`}
               >
-                アカウント
+                料金
               </span>
             </Link>
           </SoftTooltip>

@@ -18,8 +18,8 @@ export async function navigateAfterAuth(
     await router.navigate({ to: "/", search, replace: true });
     return;
   }
-  if (pathname === "/settings") {
-    await router.navigate({ to: "/settings", search, replace: true });
+  if (pathname === "/pricing") {
+    await router.navigate({ to: "/pricing", search, replace: true });
     return;
   }
   const m = /^\/roadmap\/([^/?#]+)$/.exec(pathname);
