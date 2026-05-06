@@ -8,6 +8,7 @@ import { getDb } from "../db";
 import { processedStripeEvents } from "../db/schemas/stripe-events";
 import { subscriptions } from "../db/schemas/subscription";
 import { jsonError } from "../lib/api-error";
+import { CREDIT_SCHEMA_VERSION } from "../lib/plan-limits";
 import {
   stripeCustomerIdFromStripeObject,
   subscriptionSyncPatchFromStripe,
@@ -180,9 +181,6 @@ app.post("/stripe", stripeWebhookRateLimit, async (c) => {
           break;
         }
         const session = parsed.output;
-        if (session.mode !== "subscription") {
-          break;
-        }
         if (session.payment_status !== "paid") {
           break;
         }
@@ -190,27 +188,60 @@ app.post("/stripe", stripeWebhookRateLimit, async (c) => {
         if (!userId || typeof userId !== "string") {
           break;
         }
-        const subId =
-          typeof session.subscription === "string"
-            ? session.subscription
-            : session.subscription?.id;
         const custId = customerIdFromUnknown(session.customer);
-        if (!subId || !custId) {
+
+        if (session.mode === "payment") {
+          const grantRaw = session.metadata?.creditsGrant ?? "0";
+          const grant = Number.parseInt(grantRaw, 10);
+          if (!Number.isInteger(grant) || grant <= 0) {
+            break;
+          }
+          const [row] = await db
+            .select()
+            .from(subscriptions)
+            .where(eq(subscriptions.userId, userId))
+            .limit(1);
+          if (!row) {
+            break;
+          }
+          const current =
+            row.aiUsageMonth === CREDIT_SCHEMA_VERSION
+              ? Math.max(0, row.aiGenerationsUsed ?? 0)
+              : 0;
+          await db
+            .update(subscriptions)
+            .set({
+              stripeCustomerId: custId ?? row.stripeCustomerId,
+              aiGenerationsUsed: current + grant,
+              aiUsageMonth: CREDIT_SCHEMA_VERSION,
+              updatedAt: Date.now(),
+            })
+            .where(eq(subscriptions.userId, userId));
           break;
         }
-        const sub = await stripe.subscriptions.retrieve(subId);
-        const patch = subscriptionSyncPatchFromStripe(sub);
-        await db
-          .update(subscriptions)
-          .set({
-            stripeCustomerId: custId,
-            stripeSubscriptionId: patch.stripeSubscriptionId,
-            plan: patch.plan,
-            status: patch.status,
-            currentPeriodEnd: patch.currentPeriodEnd,
-            updatedAt: Date.now(),
-          })
-          .where(eq(subscriptions.userId, userId));
+
+        if (session.mode === "subscription") {
+          const subId =
+            typeof session.subscription === "string"
+              ? session.subscription
+              : session.subscription?.id;
+          if (!subId || !custId) {
+            break;
+          }
+          const sub = await stripe.subscriptions.retrieve(subId);
+          const patch = subscriptionSyncPatchFromStripe(sub);
+          await db
+            .update(subscriptions)
+            .set({
+              stripeCustomerId: custId,
+              stripeSubscriptionId: patch.stripeSubscriptionId,
+              plan: patch.plan,
+              status: patch.status,
+              currentPeriodEnd: patch.currentPeriodEnd,
+              updatedAt: Date.now(),
+            })
+            .where(eq(subscriptions.userId, userId));
+        }
         break;
       }
       case "customer.subscription.updated": {

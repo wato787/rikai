@@ -27,6 +27,23 @@ export function BillingSection() {
       await queryClient.invalidateQueries({ queryKey: subscriptionMeQueryOptions().queryKey });
     },
   });
+  const grantCreditsMutation = useMutation({
+    mutationFn: async () => {
+      await apiPost("/subscriptions/credits/grant", { amount: 10 });
+    },
+    onError: (err) => {
+      const msg =
+        err instanceof ApiRequestError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "クレジット付与に失敗しました。";
+      window.alert(msg);
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: subscriptionMeQueryOptions().queryKey });
+    },
+  });
 
   const sub = data?.subscription;
   const remainingCredits = sub?.remainingCredits ?? 0;
@@ -53,14 +70,25 @@ export function BillingSection() {
             ) : null}
           </div>
         </div>
-        <button
-          type="button"
-          disabled={checkoutMutation.isPending || isPending}
-          onClick={() => checkoutMutation.mutate()}
-          className="px-6 py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 transition-all shadow-md shadow-emerald-600/20 active:scale-95 shrink-0 disabled:opacity-50 disabled:pointer-events-none"
-        >
-          {checkoutMutation.isPending ? "準備中…" : "クレジットを追加（準備中）"}
-        </button>
+        {import.meta.env.DEV ? (
+          <button
+            type="button"
+            disabled={grantCreditsMutation.isPending || isPending}
+            onClick={() => grantCreditsMutation.mutate()}
+            className="px-6 py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 transition-all shadow-md shadow-emerald-600/20 active:scale-95 shrink-0 disabled:opacity-50 disabled:pointer-events-none"
+          >
+            {grantCreditsMutation.isPending ? "付与中…" : "開発用: +10クレジット"}
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled={checkoutMutation.isPending || isPending}
+            onClick={() => checkoutMutation.mutate()}
+            className="px-6 py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 transition-all shadow-md shadow-emerald-600/20 active:scale-95 shrink-0 disabled:opacity-50 disabled:pointer-events-none"
+          >
+            {checkoutMutation.isPending ? "決済ページへ移動中…" : "クレジットを追加"}
+          </button>
+        )}
       </div>
 
       <div className="space-y-4 pt-4">

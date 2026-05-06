@@ -11,6 +11,8 @@ export type CloudflareBindings = {
   STRIPE_SECRET_KEY?: string;
   STRIPE_WEBHOOK_SECRET?: string;
   STRIPE_PRICE_PRO?: string;
+  STRIPE_PRICE_CREDITS?: string;
+  STRIPE_CREDITS_PER_PURCHASE?: string;
   BETTER_AUTH_SECRET?: string;
   BETTER_AUTH_URL?: string;
 };

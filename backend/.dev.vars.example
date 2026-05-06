@@ -11,5 +11,8 @@ STRIPE_SECRET_KEY=
 # wrangler dev（localhost）+ sk_test_ なら署名検証を省略するため未設定でも可。本番・トンネル先では whsec 必須
 STRIPE_WEBHOOK_SECRET=
 STRIPE_PRICE_PRO=
+STRIPE_PRICE_CREDITS=
+# 1回の購入で付与するクレジット数（省略時 10）
+STRIPE_CREDITS_PER_PURCHASE=10
 
 GEMINI_API_KEY=
