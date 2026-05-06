@@ -93,9 +93,7 @@ function CreateRoadmapModalForm({ toggle }: { toggle: UseToggleReturn }) {
                 ? "AI によるロードマップ生成は、サーバーに GEMINI_API_KEY が設定されるまで利用できません。"
                 : error instanceof ApiRequestError && error.code === "AI_GENERATION_LIMIT_EXCEEDED"
                   ? error.message
-                  : error instanceof ApiRequestError && error.code === "ROADMAP_LIMIT_EXCEEDED"
-                    ? error.message
-                    : error instanceof ApiRequestError
+                  : error instanceof ApiRequestError
                       ? error.message
                       : error instanceof Error
                         ? error.message

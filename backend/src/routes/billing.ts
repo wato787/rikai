@@ -4,13 +4,9 @@ import * as v from "valibot";
 import { v7 as uuidv7 } from "uuid";
 
 import { getDb } from "../db";
-import { subscriptions } from "../db/schemas/subscription";
+import { billingAccounts } from "../db/schemas/billing-account";
 import { jsonError } from "../lib/api-error";
-import {
-  CREDIT_SCHEMA_VERSION,
-  INITIAL_FREE_CREDITS,
-  ROADMAP_GENERATION_CREDIT_COST,
-} from "../lib/plan-limits";
+import { INITIAL_FREE_CREDITS, ROADMAP_GENERATION_CREDIT_COST } from "../lib/plan-limits";
 import { ipRateLimit } from "../lib/rate-limit";
 import { createStripeClient } from "../lib/stripe-server";
 import { requireAuth } from "../middleware/auth";
@@ -26,7 +22,7 @@ function frontendBase(c: { env: { FRONTEND_URL: string } }): string | null {
 
 const app = new Hono<AppEnv>();
 const billingWriteRateLimit = ipRateLimit({
-  routeKey: "subscriptions:write",
+  routeKey: "billing:write",
   windowMs: 60_000,
   maxRequests: 20,
 });
@@ -36,31 +32,28 @@ const creditGrantBodySchema = v.object({
 
 app.use("*", requireAuth);
 
-/** GET /api/subscriptions/me */
+/** GET /api/billing/me */
 app.get("/me", async (c) => {
   const userId = c.get("user").id;
   const db = getDb(c.env.rikai_db);
 
   const [row] = await db
     .select()
-    .from(subscriptions)
-    .where(eq(subscriptions.userId, userId))
+    .from(billingAccounts)
+    .where(eq(billingAccounts.userId, userId))
     .limit(1);
 
   if (!row) {
     const now = Date.now();
-    await db.insert(subscriptions).values({
+    await db.insert(billingAccounts).values({
       id: uuidv7(),
       userId,
-      plan: "free",
-      status: "active",
-      aiGenerationsUsed: INITIAL_FREE_CREDITS,
-      aiUsageMonth: CREDIT_SCHEMA_VERSION,
+      creditBalance: INITIAL_FREE_CREDITS,
       createdAt: now,
       updatedAt: now,
     });
     return c.json({
-      subscription: {
+      billing: {
         creditModel: "credits",
         remainingCredits: INITIAL_FREE_CREDITS,
         costPerRoadmapGeneration: ROADMAP_GENERATION_CREDIT_COST,
@@ -68,33 +61,16 @@ app.get("/me", async (c) => {
     });
   }
 
-  let remainingCredits: number;
-  if (row.aiUsageMonth === CREDIT_SCHEMA_VERSION) {
-    remainingCredits = Math.max(0, row.aiGenerationsUsed ?? 0);
-  } else {
-    // 旧「月次利用回数」運用からの緩やかな移行
-    const usedLegacy = Math.max(0, row.aiGenerationsUsed ?? 0);
-    remainingCredits = Math.max(0, INITIAL_FREE_CREDITS - usedLegacy);
-    await db
-      .update(subscriptions)
-      .set({
-        aiGenerationsUsed: remainingCredits,
-        aiUsageMonth: CREDIT_SCHEMA_VERSION,
-        updatedAt: Date.now(),
-      })
-      .where(eq(subscriptions.userId, userId));
-  }
-
   return c.json({
-    subscription: {
+    billing: {
       creditModel: "credits",
-      remainingCredits,
+      remainingCredits: Math.max(0, row.creditBalance ?? 0),
       costPerRoadmapGeneration: ROADMAP_GENERATION_CREDIT_COST,
     },
   });
 });
 
-/** POST /api/subscriptions/checkout */
+/** POST /api/billing/checkout */
 app.post("/checkout", billingWriteRateLimit, async (c) => {
   const userId = c.get("user").id;
   const secret = process.env.STRIPE_SECRET_KEY ?? c.env.STRIPE_SECRET_KEY;
@@ -123,12 +99,12 @@ app.post("/checkout", billingWriteRateLimit, async (c) => {
   const db = getDb(c.env.rikai_db);
   const [row] = await db
     .select()
-    .from(subscriptions)
-    .where(eq(subscriptions.userId, userId))
+    .from(billingAccounts)
+    .where(eq(billingAccounts.userId, userId))
     .limit(1);
 
   if (!row) {
-    return jsonError(c, 500, "INTERNAL_SERVER_ERROR", "クレジット情報が見つかりません。");
+    return jsonError(c, 500, "INTERNAL_SERVER_ERROR", "課金アカウント情報が見つかりません。");
   }
 
   const stripe = createStripeClient(secret);
@@ -140,9 +116,9 @@ app.post("/checkout", billingWriteRateLimit, async (c) => {
     });
     customerId = customer.id;
     await db
-      .update(subscriptions)
+      .update(billingAccounts)
       .set({ stripeCustomerId: customerId, updatedAt: Date.now() })
-      .where(eq(subscriptions.userId, userId));
+      .where(eq(billingAccounts.userId, userId));
   }
 
   const base = frontendBase(c);
@@ -176,7 +152,7 @@ app.post("/checkout", billingWriteRateLimit, async (c) => {
   return c.json({ checkoutUrl: session.url });
 });
 
-/** POST /api/subscriptions/credits/grant （開発環境限定） */
+/** POST /api/billing/credits/grant （開発環境限定） */
 app.post("/credits/grant", billingWriteRateLimit, async (c) => {
   const nodeEnv = process.env.NODE_ENV ?? c.env.NODE_ENV;
   if (nodeEnv === "production") {
@@ -201,35 +177,27 @@ app.post("/credits/grant", billingWriteRateLimit, async (c) => {
 
   const [row] = await db
     .select()
-    .from(subscriptions)
-    .where(eq(subscriptions.userId, userId))
+    .from(billingAccounts)
+    .where(eq(billingAccounts.userId, userId))
     .limit(1);
   if (!row) {
-    return jsonError(c, 500, "INTERNAL_SERVER_ERROR", "クレジット情報が見つかりません。");
+    return jsonError(c, 500, "INTERNAL_SERVER_ERROR", "課金アカウント情報が見つかりません。");
   }
 
-  const current =
-    row.aiUsageMonth === CREDIT_SCHEMA_VERSION ? Math.max(0, row.aiGenerationsUsed ?? 0) : 0;
-  const next = current + amount;
+  const next = Math.max(0, row.creditBalance ?? 0) + amount;
 
   await db
-    .update(subscriptions)
+    .update(billingAccounts)
     .set({
-      aiGenerationsUsed: next,
-      aiUsageMonth: CREDIT_SCHEMA_VERSION,
+      creditBalance: next,
       updatedAt: now,
     })
-    .where(eq(subscriptions.userId, userId));
+    .where(eq(billingAccounts.userId, userId));
 
   return c.json({
     granted: amount,
     remainingCredits: next,
   });
-});
-
-/** POST /api/subscriptions/cancel */
-app.post("/cancel", billingWriteRateLimit, async (c) => {
-  return jsonError(c, 400, "VALIDATION_ERROR", "クレジット制では解約操作は不要です。");
 });
 
 export default app;

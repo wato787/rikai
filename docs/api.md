@@ -1,9 +1,9 @@
 # API設計書
 
-**プロダクト名：** Rikai（SaaS版）
-**ドキュメントバージョン：** 1.0
-**作成日：** 2026年4月5日
-**バックエンド：** Cloudflare Workers + Hono
+**プロダクト名：** Rikai（SaaS版）  
+**ドキュメントバージョン：** 1.1  
+**最終更新：** 2026年5月6日  
+**バックエンド：** Cloudflare Workers + Hono  
 **ベースURL：** `https://api.rikai.app`（仮）
 
 ---
@@ -13,11 +13,11 @@
 | 項目 | 内容 |
 |------|------|
 | スタイル | REST |
-| 認証方式 | Better Auth のセッションCookie（`HttpOnly`）。全認証必要エンドポイントで検証 |
+| 認証方式 | Better Auth のセッションCookie（`HttpOnly`） |
 | レスポンス形式 | `Content-Type: application/json` |
-| エラーレスポンス | 共通フォーマット（後述） |
-| Webhook（Stripe） | 署名検証必須（`stripe-signature` ヘッダー） |
-| CORS | Vite開発サーバー・本番ドメインのみ許可 |
+| 課金モデル | Stripe を用いたクレジット購入制 |
+| Webhook | `POST /api/webhooks/stripe` で署名検証必須 |
+| CORS | 開発用 localhost と `FRONTEND_URL` のみ許可 |
 
 ---
 
@@ -25,88 +25,73 @@
 
 ### 認証
 
-Better Auth が発行するセッションCookieをリクエストに含める。Workers側でセッション検証を行い、`userId` を取得する。
+Better Auth が発行するセッションCookieをリクエストに含める。
 
-```
+```http
 Cookie: better-auth.session=<token>
 ```
 
-### エラーレスポンス共通フォーマット
+### エラーレスポンス
 
 ```json
 {
   "error": {
-    "code": "ROADMAP_LIMIT_EXCEEDED",
-    "message": "無料プランの作成上限（3件）に達しています。"
+    "code": "AI_GENERATION_LIMIT_EXCEEDED",
+    "message": "クレジットが不足しています。クレジットを追加してください。"
   }
 }
 ```
 
-**主要エラーコード一覧：**
-
 | HTTPステータス | code | 説明 |
-|--------------|------|------|
-| 400 | `VALIDATION_ERROR` | リクエストボディの形式不正 |
+|---|---|---|
+| 400 | `VALIDATION_ERROR` | リクエスト形式不正 |
 | 401 | `UNAUTHORIZED` | 未認証・セッション切れ |
-| 403 | `FORBIDDEN` | 他ユーザーのリソースへのアクセス |
-| 404 | `NOT_FOUND` | リソースが存在しない |
-| 409 | `ROADMAP_LIMIT_EXCEEDED` | 無料プランの作成上限超過 |
+| 403 | `FORBIDDEN` | 権限不足 |
+| 403 | `AI_GENERATION_LIMIT_EXCEEDED` | クレジット不足 |
+| 404 | `NOT_FOUND` | リソース不在 |
+| 429 | `RATE_LIMITED` | レート制限 |
 | 500 | `INTERNAL_SERVER_ERROR` | サーバー内部エラー |
-| 503 | `GEMINI_NOT_CONFIGURED` | `GEMINI_API_KEY` 未設定（空白のみも含む） |
-| 502 | `AI_GENERATION_FAILED` | Gemini API の呼び出し失敗・不正レスポンス |
+| 502 | `AI_GENERATION_FAILED` | AI 応答の解釈失敗 |
+| 503 | `GEMINI_NOT_CONFIGURED` | Gemini 未設定 |
+| 503 | `AI_SERVICE_UNAVAILABLE` | AI 一時混雑 |
 
 ---
 
 ## エンドポイント一覧
 
 | # | メソッド | パス | 認証 | 概要 |
-|---|---------|------|------|------|
-| 1 | POST | `/api/auth/**` | - | Better Auth ハンドラー（認証全般） |
-| 2 | GET | `/api/roadmaps` | ✅ | ロードマップ一覧取得 |
-| 3 | POST | `/api/roadmaps` | ✅ | ロードマップ生成・作成 |
-| 4 | GET | `/api/roadmaps/:id` | ✅ | ロードマップ詳細取得 |
-| 5 | DELETE | `/api/roadmaps/:id` | ✅ | ロードマップ削除 |
-| 6 | PATCH | `/api/roadmaps/:id/nodes/:nodeId` | ✅ | ノードステータス更新 |
-| 7 | GET | `/api/subscriptions/me` | ✅ | 自分のサブスク情報取得 |
-| 8 | POST | `/api/subscriptions/checkout` | ✅ | Stripe Checkoutセッション作成 |
-| 9 | POST | `/api/subscriptions/cancel` | ✅ | サブスクリプションキャンセル |
-| 10 | POST | `/api/webhooks/stripe` | ❌（署名検証） | Stripe Webhookイベント受信 |
+|---|---|---|---|---|
+| 1 | `POST/GET` | `/api/auth/**` | - | Better Auth ハンドラー |
+| 2 | `GET` | `/api/roadmaps` | ✅ | ロードマップ一覧取得 |
+| 3 | `POST` | `/api/roadmaps` | ✅ | ロードマップ生成・作成 |
+| 4 | `GET` | `/api/roadmaps/:id` | ✅ | ロードマップ詳細取得 |
+| 5 | `DELETE` | `/api/roadmaps/:id` | ✅ | ロードマップ削除 |
+| 6 | `PATCH` | `/api/roadmaps/:id/nodes/:nodeId` | ✅ | ノード更新 |
+| 7 | `GET` | `/api/billing/me` | ✅ | 自分の課金状態取得 |
+| 8 | `POST` | `/api/billing/checkout` | ✅ | Stripe Checkout セッション作成 |
+| 9 | `POST` | `/api/billing/credits/grant` | ✅ | 開発用クレジット付与 |
+| 10 | `POST` | `/api/webhooks/stripe` | ❌ | Stripe Webhook 受信 |
 
 ---
 
 ## エンドポイント詳細
 
----
-
 ### 1. Better Auth ハンドラー
 
-```
+```http
 POST /api/auth/**
+GET  /api/auth/session
 ```
 
-Better Auth が提供するハンドラーをそのままマウントする。以下のエンドポイントが自動生成される。
-
-| パス | 概要 |
-|------|------|
-| `POST /api/auth/sign-up/email` | メール/PWで新規登録 |
-| `POST /api/auth/sign-in/email` | メール/PWでログイン |
-| `POST /api/auth/sign-out` | ログアウト |
-| `GET /api/auth/session` | 現在のセッション情報取得 |
-
-**afterSignUp hook（サーバー側）：**
-ユーザー登録完了後、`subscriptions` テーブルに `plan: free / status: inactive` のレコードを自動INSERT する。
+ユーザー登録完了後、`billing_accounts` に初期クレジット付きの行を自動作成する。
 
 ---
 
 ### 2. ロードマップ一覧取得
 
-```
+```http
 GET /api/roadmaps
 ```
-
-ログインユーザーの全ロードマップを進捗サマリー付きで返す。
-
-**レスポンス `200`：**
 
 ```json
 {
@@ -127,20 +112,9 @@ GET /api/roadmaps
 
 ### 3. ロードマップ生成・作成
 
-```
+```http
 POST /api/roadmaps
 ```
-
-**処理フロー：**
-
-```
-1. 無料枠チェック（roadmaps件数 >= 3 かつ plan != 'pro' → 409）
-2. Gemini API 呼び出し（topic を元にノード・エッジを生成）
-3. D1 にトランザクションで roadmaps / nodes / edges を一括 INSERT
-4. 201 JSON を返却
-```
-
-**リクエストボディ：**
 
 ```json
 {
@@ -148,29 +122,15 @@ POST /api/roadmaps
 }
 ```
 
-**バリデーション：**
+処理フロー:
 
-| フィールド | 制約 |
-|------------|------|
-| `topic` | 必須・文字列・1〜200文字 |
-
-**Gemini へのプロンプト仕様（概要）：**
-- 日本語で出力するよう指示
-- 以下のJSONスキーマで返すよう指示（Function CallingまたはJSON mode）
-
-```json
-{
-  "title": "string",
-  "nodes": [
-    { "id": "string", "label": "string", "description": "string", "order": "number" }
-  ],
-  "edges": [
-    { "source": "string", "target": "string" }
-  ]
-}
+```text
+1. billing_accounts.credit_balance を確認
+2. 1回分のクレジットがあれば Gemini API を呼ぶ
+3. roadmaps / nodes / edges を保存
+4. 消費分だけ credit_balance を減算
+5. 201 を返す
 ```
-
-**レスポンス `201`：**
 
 ```json
 {
@@ -178,28 +138,21 @@ POST /api/roadmaps
 }
 ```
 
-**エラー：**
-
 | ステータス | code | 条件 |
-|-----------|------|------|
-| 400 | `VALIDATION_ERROR` | topicが空・200文字超 |
-| 409 | `ROADMAP_LIMIT_EXCEEDED` | 無料プランで3件以上 |
-| 503 | `GEMINI_NOT_CONFIGURED` | `GEMINI_API_KEY` 未設定 |
-| 502 | `AI_GENERATION_FAILED` | Gemini API エラー・不正なレスポンス |
-
-**注意：** ページ離脱してもWorker側の処理は継続する。クライアントがレスポンスを受け取れなかった場合、生成されたロードマップはダッシュボード（一覧）から確認できる。
+|---|---|---|
+| 400 | `VALIDATION_ERROR` | `topic` が不正 |
+| 403 | `AI_GENERATION_LIMIT_EXCEEDED` | 残クレジット不足 |
+| 503 | `GEMINI_NOT_CONFIGURED` | Gemini 未設定 |
+| 503 | `AI_SERVICE_UNAVAILABLE` | AI 一時混雑 |
+| 502 | `AI_GENERATION_FAILED` | AI 応答不正 |
 
 ---
 
 ### 4. ロードマップ詳細取得
 
-```
+```http
 GET /api/roadmaps/:id
 ```
-
-ノード一覧・エッジ一覧を含む詳細を返す。React Flowに渡すデータをそのまま返す形式を意識する。
-
-**レスポンス `200`：**
 
 ```json
 {
@@ -213,9 +166,11 @@ GET /api/roadmaps/:id
     {
       "id": "01956a24-...",
       "label": "線形代数の基礎",
-      "description": "ベクトル・行列・固有値など機械学習に必要な線形代数を学ぶ。",
+      "description": "詳細説明",
       "status": "completed",
-      "orderIndex": 0
+      "orderIndex": 0,
+      "positionX": 0,
+      "positionY": 120
     }
   ],
   "edges": [
@@ -228,43 +183,23 @@ GET /api/roadmaps/:id
 }
 ```
 
-**エラー：**
-
-| ステータス | code | 条件 |
-|-----------|------|------|
-| 403 | `FORBIDDEN` | 他ユーザーのロードマップ |
-| 404 | `NOT_FOUND` | 存在しないID |
-
 ---
 
 ### 5. ロードマップ削除
 
-```
+```http
 DELETE /api/roadmaps/:id
 ```
 
-ロードマップを物理削除する。CASCADEで `nodes` / `edges` も連鎖削除される。
-
-**レスポンス `204`：** ボディなし
-
-**エラー：**
-
-| ステータス | code | 条件 |
-|-----------|------|------|
-| 403 | `FORBIDDEN` | 他ユーザーのロードマップ |
-| 404 | `NOT_FOUND` | 存在しないID |
+レスポンスは `204 No Content`。
 
 ---
 
-### 6. ノードステータス更新
+### 6. ノード更新
 
-```
+```http
 PATCH /api/roadmaps/:id/nodes/:nodeId
 ```
-
-ノード1件のステータスを更新する。自動保存で呼び出される。
-
-**リクエストボディ：**
 
 ```json
 {
@@ -272,74 +207,42 @@ PATCH /api/roadmaps/:id/nodes/:nodeId
 }
 ```
 
-**バリデーション：**
-
-| フィールド | 制約 |
-|------------|------|
-| `status` | 必須・`not_started` / `in_progress` / `completed` のいずれか |
-
-**レスポンス `200`：**
-
-```json
-{
-  "node": {
-    "id": "01956a24-...",
-    "status": "in_progress",
-    "updatedAt": 1743811200000
-  }
-}
-```
-
-**エラー：**
-
-| ステータス | code | 条件 |
-|-----------|------|------|
-| 400 | `VALIDATION_ERROR` | status が不正な値 |
-| 403 | `FORBIDDEN` | 他ユーザーのノード |
-| 404 | `NOT_FOUND` | 存在しないノード or ロードマップ |
+`status` / `label` / `description` のいずれかを更新できる。
 
 ---
 
-### 7. サブスクリプション情報取得
+### 7. 課金状態取得
 
+```http
+GET /api/billing/me
 ```
-GET /api/subscriptions/me
-```
-
-ログインユーザーの現在のプラン・ステータスを返す。設定画面・ダッシュボードの制限チェックに使用する。
-
-**レスポンス `200`：**
 
 ```json
 {
-  "subscription": {
-    "plan": "free",
-    "status": "inactive",
-    "currentPeriodEnd": null
+  "billing": {
+    "creditModel": "credits",
+    "remainingCredits": 3,
+    "costPerRoadmapGeneration": 1
   }
 }
 ```
 
 ---
 
-### 8. Stripe Checkoutセッション作成
+### 8. Stripe Checkout セッション作成
 
-```
-POST /api/subscriptions/checkout
-```
-
-Stripe Checkout セッションを作成し、リダイレクトURLを返す。
-
-**処理フロー：**
-
-```
-1. subscriptions.stripe_customer_id が未設定なら Stripe でカスタマー作成・保存
-2. Stripe Checkout セッション作成（mode: subscription）
-3. セッションURLを返却
-4. クライアントが Stripe Checkout ページへリダイレクト
+```http
+POST /api/billing/checkout
 ```
 
-**レスポンス `200`：**
+処理フロー:
+
+```text
+1. billing_accounts.stripe_customer_id が無ければ Stripe Customer を作る
+2. Stripe Checkout セッションを payment mode で発行
+3. 購入クレジット数を metadata に埋める
+4. checkoutUrl を返す
+```
 
 ```json
 {
@@ -349,94 +252,67 @@ Stripe Checkout セッションを作成し、リダイレクトURLを返す。
 
 ---
 
-### 9. サブスクリプションキャンセル
+### 9. 開発用クレジット付与
 
+```http
+POST /api/billing/credits/grant
 ```
-POST /api/subscriptions/cancel
-```
-
-Stripe のサブスクリプションを期末キャンセル（`cancel_at_period_end: true`）に設定する。即時解約ではなく、`current_period_end` まで有効。
-
-**レスポンス `200`：**
 
 ```json
 {
-  "subscription": {
-    "plan": "pro",
-    "status": "active",
-    "currentPeriodEnd": 1746403200000
-  }
+  "amount": 10
 }
 ```
 
-**エラー：**
-
-| ステータス | code | 条件 |
-|-----------|------|------|
-| 400 | `VALIDATION_ERROR` | すでにキャンセル済み・Freeプラン |
+本番では無効。開発環境だけで残高を増やす。
 
 ---
 
-### 10. Stripe Webhook受信
+### 10. Stripe Webhook
 
-```
+```http
 POST /api/webhooks/stripe
 ```
 
-Stripe からのイベントを受信し、`subscriptions` テーブルを更新する。
+現行仕様で処理するイベント:
 
-**必須処理：**
-- `stripe-signature` ヘッダーで署名検証（検証失敗は `400` を返す）
-- 冪等性を考慮すること（同一イベントの二重処理を防ぐ）
+| イベント | 処理 |
+|---|---|
+| `checkout.session.completed` | `payment` かつ `paid` のとき、`metadata.creditsGrant` 分だけ `billing_accounts.credit_balance` を加算 |
 
-**処理するイベントとDB更新内容：**
-
-| イベント | 処理内容 |
-|---------|---------|
-| `checkout.session.completed` | `plan → pro` / `status → active` / `stripe_subscription_id` を設定 / `current_period_end` を設定 |
-| `customer.subscription.deleted` | `plan → free` / `status → canceled` / `stripe_subscription_id → NULL` / `current_period_end → NULL` |
-| `invoice.payment_failed` | `status → past_due` |
-
-**レスポンス `200`：** ボディなし（Stripeが再送しないよう即座に200を返す）
+Webhook は `processed_stripe_events` で冪等に扱う。
 
 ---
 
-## API呼び出しフロー図
+## フロー図
 
 ### ロードマップ生成
 
-```
+```text
 クライアント
-  │ POST /api/roadmaps { topic }
+  │ POST /api/roadmaps
   ▼
 Worker
   ├─ セッション検証
-  ├─ 無料枠チェック
-  ├─ Gemini API呼び出し
-  ├─ D1トランザクション（roadmaps + nodes + edges INSERT）
-  └─ 201 { roadmapId }
+  ├─ クレジット残高確認
+  ├─ Gemini API 呼び出し
+  ├─ roadmaps/nodes/edges 保存
+  └─ credit_balance を減算
   ▼
-クライアント → /roadmap/:id へ遷移
+クライアント → /roadmap/:id
 ```
 
-### Stripe決済フロー
+### クレジット購入
 
-```
+```text
 クライアント
-  │ POST /api/subscriptions/checkout
+  │ POST /api/billing/checkout
   ▼
-Worker → Stripe API（Checkoutセッション作成）
-  └─ 200 { checkoutUrl }
+Worker → Stripe Checkout URL 発行
   ▼
-クライアント → Stripe Checkout ページへリダイレクト
+クライアント → Stripe Checkout
   ▼
-決済完了 → Stripe → POST /api/webhooks/stripe
+Stripe → POST /api/webhooks/stripe
   ▼
-Worker → subscriptions テーブル更新（pro / active）
-  ▼
-クライアント → /settings または /dashboard へリダイレクト（Stripeのsuccess_url）
+Worker → billing_accounts.credit_balance を加算
 ```
-
----
-
-*本ドキュメントは開発進行に伴い随時更新される。変更履歴はGitで管理する。*

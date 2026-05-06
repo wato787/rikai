@@ -17,9 +17,10 @@ import { v7 as uuidv7 } from "uuid";
 
 import * as schema from "../src/db/schema";
 import { account, session, user, verification } from "../src/db/schemas/auth";
+import { billingAccounts } from "../src/db/schemas/billing-account";
 import { edges, nodes, roadmaps } from "../src/db/schemas/roadmap";
 import { processedStripeEvents } from "../src/db/schemas/stripe-events";
-import { subscriptions } from "../src/db/schemas/subscription";
+import { INITIAL_FREE_CREDITS } from "../src/lib/plan-limits";
 
 const SEED_EMAIL = "test@test.com";
 const SEED_PASSWORD = "wwww1111";
@@ -61,7 +62,7 @@ function clearAppData(db: ReturnType<typeof drizzle>) {
   db.delete(processedStripeEvents).run();
   db.delete(session).run();
   db.delete(account).run();
-  db.delete(subscriptions).run();
+  db.delete(billingAccounts).run();
   db.delete(verification).run();
   db.delete(user).run();
 }
@@ -104,13 +105,11 @@ async function main() {
     })
     .run();
 
-  db.insert(subscriptions)
+  db.insert(billingAccounts)
     .values({
       id: uuidv7(),
       userId,
-      plan: "free",
-      status: "inactive",
-      currentPeriodEnd: null,
+      creditBalance: INITIAL_FREE_CREDITS,
       createdAt: now.getTime(),
       updatedAt: now.getTime(),
     })

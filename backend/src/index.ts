@@ -2,8 +2,8 @@ import { cors } from "hono/cors";
 import { Hono } from "hono";
 
 import { initAuth } from "./lib/auth";
+import billing from "./routes/billing";
 import roadmaps from "./routes/roadmaps";
-import subscriptions from "./routes/subscriptions";
 import webhooks from "./routes/webhooks";
 import type { AppEnv } from "./types/hono-env";
 
@@ -49,7 +49,7 @@ app.on(["POST", "GET"], "/api/auth/*", (c) => {
 });
 
 app.route("/api/roadmaps", roadmaps);
-app.route("/api/subscriptions", subscriptions);
+app.route("/api/billing", billing);
 app.route("/api/webhooks", webhooks);
 
 export default {

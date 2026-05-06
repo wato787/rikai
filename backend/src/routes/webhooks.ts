@@ -5,15 +5,9 @@ import Stripe from "stripe";
 import * as v from "valibot";
 
 import { getDb } from "../db";
+import { billingAccounts } from "../db/schemas/billing-account";
 import { processedStripeEvents } from "../db/schemas/stripe-events";
-import { subscriptions } from "../db/schemas/subscription";
 import { jsonError } from "../lib/api-error";
-import { CREDIT_SCHEMA_VERSION } from "../lib/plan-limits";
-import {
-  stripeCustomerIdFromStripeObject,
-  subscriptionSyncPatchFromStripe,
-  type SubscriptionSyncPatch,
-} from "../lib/stripe-subscription-sync";
 import { ipRateLimit } from "../lib/rate-limit";
 import { createStripeClient } from "../lib/stripe-server";
 import type { AppEnv } from "../types/hono-env";
@@ -31,24 +25,13 @@ const checkoutCompletedObjectSchema = v.object({
   payment_status: v.optional(v.string()),
   metadata: v.optional(v.record(v.string(), v.string())),
   client_reference_id: v.optional(v.nullable(v.string())),
-  subscription: v.optional(v.union([v.string(), v.object({ id: v.string() }), v.null()])),
   customer: v.optional(v.union([v.string(), v.object({ id: v.string() }), v.null()])),
 });
 
-const subscriptionEventObjectSchema = v.object({
-  id: v.string(),
-  customer: v.optional(v.unknown()),
-});
-
-const invoiceEventObjectSchema = v.object({
-  subscription: v.optional(v.union([v.string(), v.object({ id: v.string() }), v.null()])),
-  customer: v.optional(v.union([v.string(), v.object({ id: v.string() }), v.null()])),
-});
-
-function customerIdFromUnknown(v: unknown): string | null {
-  if (typeof v === "string") return v;
-  if (v && typeof v === "object" && "id" in v && typeof v.id === "string") {
-    return v.id;
+function customerIdFromUnknown(value: unknown): string | null {
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object" && "id" in value && typeof value.id === "string") {
+    return value.id;
   }
   return null;
 }
@@ -81,32 +64,6 @@ function parseStripeEventInsecure(rawBody: string): Stripe.Event | null {
   } catch {
     return null;
   }
-}
-
-async function applySubscriptionPatchByStripeSubId(
-  db: ReturnType<typeof getDb>,
-  stripeSubId: string,
-  stripeCustomerId: string | null,
-  patch: SubscriptionSyncPatch,
-) {
-  const [row] = await db
-    .select()
-    .from(subscriptions)
-    .where(eq(subscriptions.stripeSubscriptionId, stripeSubId))
-    .limit(1);
-  if (!row) return;
-
-  await db
-    .update(subscriptions)
-    .set({
-      plan: patch.plan,
-      status: patch.status,
-      stripeSubscriptionId: patch.stripeSubscriptionId,
-      currentPeriodEnd: patch.currentPeriodEnd,
-      stripeCustomerId: stripeCustomerId ?? row.stripeCustomerId,
-      updatedAt: Date.now(),
-    })
-    .where(eq(subscriptions.userId, row.userId));
 }
 
 const app = new Hono<AppEnv>();
@@ -174,155 +131,45 @@ app.post("/stripe", stripeWebhookRateLimit, async (c) => {
   }
 
   try {
-    switch (event.type) {
-      case "checkout.session.completed": {
-        const parsed = v.safeParse(checkoutCompletedObjectSchema, event.data.object);
-        if (!parsed.success) {
-          break;
-        }
+    if (event.type === "checkout.session.completed") {
+      const parsed = v.safeParse(checkoutCompletedObjectSchema, event.data.object);
+      if (parsed.success) {
         const session = parsed.output;
-        if (session.payment_status !== "paid") {
-          break;
-        }
-        const userId = session.metadata?.userId ?? session.client_reference_id;
-        if (!userId || typeof userId !== "string") {
-          break;
-        }
-        const custId = customerIdFromUnknown(session.customer);
-
-        if (session.mode === "payment") {
+        if (session.mode === "payment" && session.payment_status === "paid") {
+          const userId = session.metadata?.userId ?? session.client_reference_id;
+          const custId = customerIdFromUnknown(session.customer);
           const grantRaw = session.metadata?.creditsGrant ?? "0";
           const grant = Number.parseInt(grantRaw, 10);
-          if (!Number.isInteger(grant) || grant <= 0) {
-            break;
-          }
-          const [row] = await db
-            .select()
-            .from(subscriptions)
-            .where(eq(subscriptions.userId, userId))
-            .limit(1);
-          if (!row) {
-            break;
-          }
-          const current =
-            row.aiUsageMonth === CREDIT_SCHEMA_VERSION
-              ? Math.max(0, row.aiGenerationsUsed ?? 0)
-              : 0;
-          await db
-            .update(subscriptions)
-            .set({
-              stripeCustomerId: custId ?? row.stripeCustomerId,
-              aiGenerationsUsed: current + grant,
-              aiUsageMonth: CREDIT_SCHEMA_VERSION,
-              updatedAt: Date.now(),
-            })
-            .where(eq(subscriptions.userId, userId));
-          break;
-        }
 
-        if (session.mode === "subscription") {
-          const subId =
-            typeof session.subscription === "string"
-              ? session.subscription
-              : session.subscription?.id;
-          if (!subId || !custId) {
-            break;
+          if (userId && typeof userId === "string" && Number.isInteger(grant) && grant > 0) {
+            const [row] = await db
+              .select()
+              .from(billingAccounts)
+              .where(eq(billingAccounts.userId, userId))
+              .limit(1);
+
+            if (row) {
+              await db
+                .update(billingAccounts)
+                .set({
+                  stripeCustomerId: custId ?? row.stripeCustomerId,
+                  creditBalance: Math.max(0, row.creditBalance ?? 0) + grant,
+                  updatedAt: Date.now(),
+                })
+                .where(eq(billingAccounts.userId, userId));
+            }
           }
-          const sub = await stripe.subscriptions.retrieve(subId);
-          const patch = subscriptionSyncPatchFromStripe(sub);
-          await db
-            .update(subscriptions)
-            .set({
-              stripeCustomerId: custId,
-              stripeSubscriptionId: patch.stripeSubscriptionId,
-              plan: patch.plan,
-              status: patch.status,
-              currentPeriodEnd: patch.currentPeriodEnd,
-              updatedAt: Date.now(),
-            })
-            .where(eq(subscriptions.userId, userId));
         }
-        break;
       }
-      case "customer.subscription.updated": {
-        const parsed = v.safeParse(subscriptionEventObjectSchema, event.data.object);
-        if (!parsed.success) {
-          break;
-        }
-        const subObj = parsed.output;
-        const custId = customerIdFromUnknown(subObj.customer);
-        const fullSub = await stripe.subscriptions.retrieve(subObj.id);
-        const patch = subscriptionSyncPatchFromStripe(fullSub);
-        await applySubscriptionPatchByStripeSubId(db, fullSub.id, custId, patch);
-        break;
-      }
-      case "customer.subscription.deleted": {
-        const parsed = v.safeParse(subscriptionEventObjectSchema, event.data.object);
-        if (!parsed.success) {
-          break;
-        }
-        const subObj = parsed.output;
-        const custId = customerIdFromUnknown(subObj.customer);
-        const fullSub = await stripe.subscriptions.retrieve(subObj.id);
-        const patch = subscriptionSyncPatchFromStripe(fullSub);
-        await applySubscriptionPatchByStripeSubId(db, fullSub.id, custId, patch);
-        break;
-      }
-      case "invoice.paid": {
-        const parsed = v.safeParse(invoiceEventObjectSchema, event.data.object);
-        if (!parsed.success) {
-          break;
-        }
-        const invoice = parsed.output;
-        const subId =
-          typeof invoice.subscription === "string"
-            ? invoice.subscription
-            : invoice.subscription?.id;
-        if (!subId) {
-          break;
-        }
-        const sub = await stripe.subscriptions.retrieve(subId);
-        const custId =
-          customerIdFromUnknown(invoice.customer) ?? stripeCustomerIdFromStripeObject(sub.customer);
-        const patch = subscriptionSyncPatchFromStripe(sub);
-        await applySubscriptionPatchByStripeSubId(db, sub.id, custId, patch);
-        break;
-      }
-      case "invoice.payment_failed": {
-        const parsed = v.safeParse(invoiceEventObjectSchema, event.data.object);
-        if (!parsed.success) {
-          break;
-        }
-        const invoice = parsed.output;
-        const custId =
-          typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
-        if (!custId) {
-          break;
-        }
-        const [row] = await db
-          .select()
-          .from(subscriptions)
-          .where(eq(subscriptions.stripeCustomerId, custId))
-          .limit(1);
-        if (row) {
-          await db
-            .update(subscriptions)
-            .set({ status: "past_due", updatedAt: Date.now() })
-            .where(eq(subscriptions.userId, row.userId));
-        }
-        break;
-      }
-      default:
-        break;
     }
 
     await db.insert(processedStripeEvents).values({
       eventId: event.id,
       createdAt: Date.now(),
     });
-  } catch (e) {
-    console.error("stripe webhook handler error", e);
-    return jsonError(c, 500, "INTERNAL_SERVER_ERROR", "handler error");
+  } catch (error) {
+    console.error("Stripe webhook failed", error);
+    return jsonError(c, 500, "INTERNAL_SERVER_ERROR", "Webhook の処理に失敗しました。");
   }
 
   return c.body(null, 200);

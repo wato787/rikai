@@ -5,7 +5,8 @@ import { v7 as uuidv7 } from "uuid";
 
 import { getDb } from "../db";
 import * as schema from "../db/schema";
-import { subscriptions } from "../db/schemas/subscription";
+import { billingAccounts } from "../db/schemas/billing-account";
+import { INITIAL_FREE_CREDITS } from "./plan-limits";
 import type { CloudflareBindings } from "../types/hono-env";
 
 function trustedOriginsFromEnv(
@@ -50,11 +51,10 @@ export const initAuth = (d1: D1Database, env: CloudflareBindings) => {
         create: {
           after: async (user) => {
             const now = Date.now();
-            await db.insert(subscriptions).values({
+            await db.insert(billingAccounts).values({
               id: uuidv7(),
               userId: user.id,
-              plan: "free",
-              status: "inactive",
+              creditBalance: INITIAL_FREE_CREDITS,
               createdAt: now,
               updatedAt: now,
             });

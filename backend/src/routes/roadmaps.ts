@@ -4,16 +4,12 @@ import * as v from "valibot";
 import { v7 as uuidv7 } from "uuid";
 
 import { getDb } from "../db";
+import { billingAccounts } from "../db/schemas/billing-account";
 import { edges, nodes, roadmaps } from "../db/schemas/roadmap";
-import { subscriptions } from "../db/schemas/subscription";
 import { generateRoadmapWithGemini } from "../lib/gemini";
 import { ipRateLimit } from "../lib/rate-limit";
 import { jsonError } from "../lib/api-error";
-import {
-  CREDIT_SCHEMA_VERSION,
-  INITIAL_FREE_CREDITS,
-  ROADMAP_GENERATION_CREDIT_COST,
-} from "../lib/plan-limits";
+import { INITIAL_FREE_CREDITS, ROADMAP_GENERATION_CREDIT_COST } from "../lib/plan-limits";
 import { requireAuth } from "../middleware/auth";
 import type { AppEnv } from "../types/hono-env";
 
@@ -171,33 +167,31 @@ app.post("/", createRoadmapRateLimit, async (c) => {
 
   let [sub] = await db
     .select()
-    .from(subscriptions)
-    .where(eq(subscriptions.userId, userId))
+    .from(billingAccounts)
+    .where(eq(billingAccounts.userId, userId))
     .limit(1);
 
   if (!sub) {
     const subId = uuidv7();
-    await db.insert(subscriptions).values({
+    await db.insert(billingAccounts).values({
       id: subId,
       userId,
-      plan: "free", // 互換維持のため残す（クレジット制では実質未使用）
-      status: "active",
-      aiGenerationsUsed: INITIAL_FREE_CREDITS,
-      aiUsageMonth: CREDIT_SCHEMA_VERSION,
+      creditBalance: INITIAL_FREE_CREDITS,
       createdAt: now,
       updatedAt: now,
     });
-    [sub] = await db.select().from(subscriptions).where(eq(subscriptions.userId, userId)).limit(1);
+    [sub] = await db
+      .select()
+      .from(billingAccounts)
+      .where(eq(billingAccounts.userId, userId))
+      .limit(1);
   }
 
   if (!sub) {
-    return jsonError(c, 500, "INTERNAL_SERVER_ERROR", "サブスクリプションの初期化に失敗しました。");
+    return jsonError(c, 500, "INTERNAL_SERVER_ERROR", "課金アカウントの初期化に失敗しました。");
   }
 
-  const remainingCredits =
-    sub.aiUsageMonth === CREDIT_SCHEMA_VERSION
-      ? Math.max(0, sub.aiGenerationsUsed ?? 0)
-      : Math.max(0, INITIAL_FREE_CREDITS - Math.max(0, sub.aiGenerationsUsed ?? 0));
+  const remainingCredits = Math.max(0, sub.creditBalance ?? 0);
   if (remainingCredits < ROADMAP_GENERATION_CREDIT_COST) {
     return jsonError(
       c,
@@ -330,13 +324,12 @@ app.post("/", createRoadmapRateLimit, async (c) => {
       db.insert(nodes).values(nodeRows),
       ...(edgeRows.length > 0 ? [db.insert(edges).values(edgeRows)] : []),
       db
-        .update(subscriptions)
+        .update(billingAccounts)
         .set({
-          aiGenerationsUsed: nextRemainingCredits,
-          aiUsageMonth: CREDIT_SCHEMA_VERSION,
+          creditBalance: nextRemainingCredits,
           updatedAt: now,
         })
-        .where(eq(subscriptions.userId, userId)),
+        .where(eq(billingAccounts.userId, userId)),
     ]);
   } catch (e) {
     console.error(e);

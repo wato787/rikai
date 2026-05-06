@@ -2,19 +2,19 @@ import { queryOptions } from "@tanstack/react-query";
 
 import { apiGet } from "@/lib/api-client";
 
-export const subscriptionMeQueryKey = ["subscriptions", "me"] as const;
+export const billingMeQueryKey = ["billing", "me"] as const;
 
-type SubscriptionMeJson = {
-  subscription: {
+type BillingMeJson = {
+  billing: {
     creditModel: "credits";
     remainingCredits: number;
     costPerRoadmapGeneration: number;
   };
 };
 
-export function subscriptionMeQueryOptions() {
+export function billingMeQueryOptions() {
   return queryOptions({
-    queryKey: subscriptionMeQueryKey,
-    queryFn: () => apiGet<SubscriptionMeJson>("/subscriptions/me"),
+    queryKey: billingMeQueryKey,
+    queryFn: () => apiGet<BillingMeJson>("/billing/me"),
   });
 }

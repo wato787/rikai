@@ -3,15 +3,15 @@ import { ChevronRight, Shield, Trash2 } from "lucide-react";
 
 import { ApiRequestError, apiPost } from "@/lib/api-client";
 
-import { subscriptionMeQueryOptions } from "./queries";
+import { billingMeQueryOptions } from "./queries";
 
 export function BillingSection() {
   const queryClient = useQueryClient();
-  const { data, isPending } = useQuery(subscriptionMeQueryOptions());
+  const { data, isPending } = useQuery(billingMeQueryOptions());
 
   const checkoutMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiPost<{ checkoutUrl: string }>("/subscriptions/checkout");
+      const res = await apiPost<{ checkoutUrl: string }>("/billing/checkout");
       window.location.assign(res.checkoutUrl);
     },
     onError: (err) => {
@@ -24,12 +24,12 @@ export function BillingSection() {
       window.alert(msg);
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: subscriptionMeQueryOptions().queryKey });
+      await queryClient.invalidateQueries({ queryKey: billingMeQueryOptions().queryKey });
     },
   });
   const grantCreditsMutation = useMutation({
     mutationFn: async () => {
-      await apiPost("/subscriptions/credits/grant", { amount: 10 });
+      await apiPost("/billing/credits/grant", { amount: 10 });
     },
     onError: (err) => {
       const msg =
@@ -41,13 +41,13 @@ export function BillingSection() {
       window.alert(msg);
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: subscriptionMeQueryOptions().queryKey });
+      await queryClient.invalidateQueries({ queryKey: billingMeQueryOptions().queryKey });
     },
   });
 
-  const sub = data?.subscription;
-  const remainingCredits = sub?.remainingCredits ?? 0;
-  const costPerGeneration = sub?.costPerRoadmapGeneration ?? 1;
+  const billing = data?.billing;
+  const remainingCredits = billing?.remainingCredits ?? 0;
+  const costPerGeneration = billing?.costPerRoadmapGeneration ?? 1;
 
   return (
     <div className="bg-white border border-zinc-100 rounded-2xl p-8 shadow-sm space-y-8">

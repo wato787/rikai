@@ -36,6 +36,13 @@
       "when": 1776070308632,
       "tag": "0004_burly_sersi",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1778037711702,
+      "tag": "0005_dark_maddog",
+      "breakpoints": true
     }
   ]
 }
